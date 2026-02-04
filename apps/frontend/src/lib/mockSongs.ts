@@ -1,3 +1,4 @@
+import { serializeSectionContent } from '@/lib/sectionContent'
 import type { Song, SongListItem, SongMeta, SongVisibility } from '@/types/song'
 
 const STORAGE_KEY = 'chordbook:songs'
@@ -20,6 +21,44 @@ const safeParse = <T>(value: string | null, fallback: T): T => {
   }
 }
 
+const parseBarContent = (content: string) => {
+  const bars = content
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean)
+  if (bars.length === 0) return serializeSectionContent([])
+  const chords = bars.map((chord, index) => ({
+    chord,
+    offset: (index + 1) / (bars.length + 1),
+  }))
+  return serializeSectionContent([createLine('', chords)])
+}
+
+const normalizeStoredSongs = (songs: Song[]): Song[] =>
+  songs.map((song) => ({
+    ...song,
+    sections: song.sections.map((section) => {
+      if ((section as { type: string }).type === 'bar') {
+        return {
+          ...section,
+          type: 'chord-only',
+          content: parseBarContent(section.content),
+        }
+      }
+      return section
+    }),
+  }))
+
+const createLine = (lyrics: string, chords: Array<{ chord: string; offset: number }>) => ({
+  id: createId(),
+  lyrics,
+  chords: chords.map((item) => ({
+    id: createId(),
+    chord: item.chord,
+    offset: item.offset,
+  })),
+})
+
 const seedSongs = (): Song[] => [
   {
     id: createId(),
@@ -33,14 +72,28 @@ const seedSongs = (): Song[] => [
       {
         id: createId(),
         name: 'Intro',
-        type: 'bar',
-        content: '| Am | F | C | G |',
+        type: 'chord-only',
+        content: serializeSectionContent([
+          createLine('', [
+            { chord: 'Am', offset: 0.1 },
+            { chord: 'F', offset: 0.35 },
+            { chord: 'C', offset: 0.6 },
+            { chord: 'G', offset: 0.85 },
+          ]),
+        ]),
       },
       {
         id: createId(),
         name: 'Aメロ',
         type: 'lyrics-chord',
-        content: 'Am        F        C        G\n夜の風が うたう',
+        content: serializeSectionContent([
+          createLine('夜の風が うたう', [
+            { chord: 'Am', offset: 0.05 },
+            { chord: 'F', offset: 0.35 },
+            { chord: 'C', offset: 0.6 },
+            { chord: 'G', offset: 0.85 },
+          ]),
+        ]),
       },
     ],
     createdAt: nowIso(),
@@ -58,8 +111,15 @@ const seedSongs = (): Song[] => [
       {
         id: createId(),
         name: 'Chorus',
-        type: 'bar',
-        content: '| C | G | Am | F |',
+        type: 'lyrics-chord',
+        content: serializeSectionContent([
+          createLine('Shine on, shine on', [
+            { chord: 'C', offset: 0.05 },
+            { chord: 'G', offset: 0.35 },
+            { chord: 'Am', offset: 0.6 },
+            { chord: 'F', offset: 0.85 },
+          ]),
+        ]),
       },
     ],
     createdAt: nowIso(),
@@ -70,7 +130,11 @@ const seedSongs = (): Song[] => [
 const readSongs = (): Song[] => {
   if (typeof window === 'undefined') return []
   const stored = safeParse<Song[]>(localStorage.getItem(STORAGE_KEY), [])
-  if (stored.length > 0) return stored
+  if (stored.length > 0) {
+    const normalized = normalizeStoredSongs(stored)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+    return normalized
+  }
   const seeded = seedSongs()
   localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
   return seeded

@@ -1,4 +1,4 @@
-export type SectionType = 'lyrics-chord' | 'bar'
+export type SectionType = 'lyrics-chord' | 'chord-only'
 
 export type SongVisibility = 'private' | 'url-only' | 'specific-users' | 'public'
 
