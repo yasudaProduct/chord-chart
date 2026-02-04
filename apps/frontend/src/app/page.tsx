@@ -1,87 +1,95 @@
+import Link from 'next/link'
+import { SiteHeader } from '@/components/SiteHeader'
+
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-primary">ChordBook</h1>
-          <nav className="flex gap-4">
-            <a href="/login" className="text-gray-600 hover:text-gray-900">
-              ログイン
-            </a>
-            <a
+    <main className="min-h-screen">
+      <SiteHeader variant="public" />
+
+      <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-6 py-20 md:grid-cols-2">
+        <div className="space-y-6">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            ChordBook MVP
+          </p>
+          <h1 className="text-4xl font-semibold leading-tight text-slate-900 md:text-5xl">
+            作りやすく、演奏しやすく。
+            <span className="block font-display text-slate-700">
+              あなたのコード譜を美しく管理。
+            </span>
+          </h1>
+          <p className="text-lg text-slate-600">
+            広告や煩雑さから解放されて、練習にも本番にも使えるコード譜を一冊に。
+            編集・プレビュー・印刷までを一気通貫で。
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link
               href="/register"
-              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-hover"
+              className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              新規登録
-            </a>
-          </nav>
+              無料で始める
+            </Link>
+            <Link
+              href="/songs"
+              className="rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
+            >
+              デモを見る
+            </Link>
+          </div>
         </div>
-      </header>
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 py-24 text-center">
-        <h2 className="text-4xl font-bold text-gray-900 mb-6">
-          自分だけのコード譜ライブラリを
-          <br />
-          作りやすく・演奏しやすく・管理しやすく
-        </h2>
-        <p className="text-xl text-gray-600 mb-8">
-          シンプルなコード譜を作成・管理・共有できるアプリ。
-          <br />
-          既存サイトの不満を解消し、オリジナル曲も一元管理。
-        </p>
-        <a
-          href="/register"
-          className="inline-block bg-primary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary-hover transition-colors"
-        >
-          無料で始める
-        </a>
-      </section>
-
-      {/* Features */}
-      <section className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <h3 className="text-2xl font-bold text-center text-gray-900 mb-12">
-            主な機能
-          </h3>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">&#9835;</div>
-              <h4 className="text-lg font-semibold mb-2">作りやすい</h4>
-              <p className="text-gray-600">
-                コード補完機能、スマート予測で
-                <br />
-                効率的にコード譜を作成
-              </p>
+        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_30px_80px_-50px_rgba(15,23,42,0.5)] backdrop-blur">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            <span>Editor Preview</span>
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700">
+              Live
+            </span>
+          </div>
+          <div className="mt-6 space-y-4 font-mono text-sm text-slate-700">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs text-slate-400">Verse</p>
+              <p>C        G        Am       F</p>
+              <p>きょうも いちにち がんばった</p>
             </div>
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">&#9834;</div>
-              <h4 className="text-lg font-semibold mb-2">演奏しやすい</h4>
-              <p className="text-gray-600">
-                見やすいデザイン、自動スクロールで
-                <br />
-                演奏に集中できる
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">&#128193;</div>
-              <h4 className="text-lg font-semibold mb-2">管理しやすい</h4>
-              <p className="text-gray-600">
-                一元管理、共有機能で
-                <br />
-                コード譜をすっきり整理
-              </p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs text-slate-400">Chorus</p>
+              <p>| C | G | Am | F |</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p>&copy; 2025 ChordBook. All rights reserved.</p>
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="grid gap-6 md:grid-cols-3">
+          {[
+            {
+              title: '直感的なエディタ',
+              description:
+                'セクションごとに整理しながら、歌詞+コード/小節形式をスムーズに編集。',
+            },
+            {
+              title: '演奏に最適化',
+              description: 'リハでも本番でも見やすい、集中できるレイアウト。',
+            },
+            {
+              title: '印刷・共有準備',
+              description: '紙でもそのまま使える余白とレイアウトに対応。',
+            },
+          ].map((feature) => (
+            <div
+              key={feature.title}
+              className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.6)] backdrop-blur"
+            >
+              <h3 className="font-display text-lg font-semibold text-slate-900">
+                {feature.title}
+              </h3>
+              <p className="mt-3 text-sm text-slate-600">{feature.description}</p>
+            </div>
+          ))}
         </div>
+      </section>
+
+      <footer className="border-t border-white/60 bg-white/70 py-6 text-center text-xs text-slate-400">
+        <p>&copy; 2026 ChordBook. Crafted for clean performances.</p>
       </footer>
     </main>
   )
