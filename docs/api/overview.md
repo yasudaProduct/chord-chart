@@ -20,9 +20,17 @@ ChordBook REST API の概要と認証方式です。
 
 ---
 
+## OpenAPI（仕様の一次情報）
+
+API 仕様の一次情報は OpenAPI で管理します。
+
+- OpenAPI: `docs/api/openapi.yaml`
+
 ## 認証
 
 Supabase Auth を使用した JWT 認証を採用。
+
+※ 現時点のバックエンド実装（`apps/backend/src/ChordBook.Api/Program.cs`）では JWT 検証の設定が未実装のため、ここに記載の「認証必須」は仕様上の要件（実装予定）です。
 
 ### フロー
 
@@ -106,6 +114,12 @@ GET /api/songs?page=1&limit=20&sort=updatedAt&order=desc
 }
 ```
 
+### Content（コード譜データ）
+
+`Song.content` は JSON のセクション配列です（JSON 文字列ではありません）。詳細な構造は以下も参照してください。
+
+- `docs/database/tables.md`
+
 ---
 
 ## レスポンス
@@ -126,16 +140,14 @@ GET /api/songs?page=1&limit=20&sort=updatedAt&order=desc
 
 ```json
 {
-  "data": [
+  "items": [
     { "id": "1", "title": "曲1" },
     { "id": "2", "title": "曲2" }
   ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 100,
-    "totalPages": 5
-  }
+  "total": 100,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 5
 }
 ```
 

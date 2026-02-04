@@ -20,6 +20,14 @@ ChordBook バックエンド API のエンドポイント一覧です。
 Authorization: Bearer <supabase_access_token>
 ```
 
+※ 現時点のバックエンド実装では JWT 検証の設定が未実装のため、本ドキュメントの「認証: 必要」は仕様上の要件（実装予定）です。
+
+## OpenAPI（仕様の一次情報）
+
+API 仕様の一次情報は OpenAPI で管理します。
+
+- OpenAPI: `docs/api/openapi.yaml`
+
 ## エンドポイント一覧
 
 ### Health Check
@@ -52,15 +60,21 @@ Authorization: Bearer <supabase_access_token>
 **レスポンス**
 
 ```json
-[
-  {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "title": "サンプル曲",
-    "artist": "サンプルアーティスト",
-    "key": "C",
-    "updatedAt": "2024-01-15T10:30:00Z"
-  }
-]
+{
+  "items": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "サンプル曲",
+      "artist": "サンプルアーティスト",
+      "key": "C",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 1
+}
 ```
 
 ---
@@ -87,7 +101,9 @@ Authorization: Bearer <supabase_access_token>
   "key": "C",
   "bpm": 120,
   "timeSignature": "4/4",
-  "content": "[{\"id\":\"section-1\",\"name\":\"イントロ\",\"type\":\"bar\",\"lines\":[]}]",
+  "content": [
+    { "id": "section-1", "name": "イントロ", "type": "bar", "lines": [] }
+  ],
   "visibility": 0,
   "createdAt": "2024-01-10T08:00:00Z",
   "updatedAt": "2024-01-15T10:30:00Z"
@@ -139,7 +155,7 @@ Authorization: Bearer <supabase_access_token>
   "key": "G",
   "bpm": 100,
   "timeSignature": "4/4",
-  "content": "[]",
+  "content": [],
   "visibility": 0,
   "createdAt": "2024-01-15T10:30:00Z",
   "updatedAt": "2024-01-15T10:30:00Z"
@@ -171,7 +187,9 @@ Authorization: Bearer <supabase_access_token>
   "key": "Am",
   "bpm": 110,
   "timeSignature": "3/4",
-  "content": "[{\"id\":\"section-1\",\"name\":\"Aメロ\",\"type\":\"bar\",\"lines\":[]}]"
+  "content": [
+    { "id": "section-1", "name": "Aメロ", "type": "bar", "lines": [] }
+  ]
 }
 ```
 
@@ -182,7 +200,7 @@ Authorization: Bearer <supabase_access_token>
 | key | string | No | キー |
 | bpm | number | No | テンポ |
 | timeSignature | string | Yes | 拍子 |
-| content | string | Yes | コード譜データ（JSON文字列） |
+| content | array | Yes | コード譜データ（セクション配列） |
 
 **レスポンス**: 204 No Content
 

@@ -25,6 +25,7 @@
 
 - [API概要](./api/overview.md) - 認証方式とエラーハンドリング
 - [エンドポイント](./api/endpoints.md) - REST API エンドポイント一覧
+- `docs/api/openapi.yaml` - OpenAPI（仕様の一次情報）
 
 ### データベース
 
