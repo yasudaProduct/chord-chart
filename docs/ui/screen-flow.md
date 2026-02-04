@@ -14,12 +14,12 @@ flowchart TB
         Register[新規登録<br/>/register]
         Search[検索<br/>/search]
         Share[共有楽曲表示<br/>/share/:token]
+        Songs[楽曲一覧<br/>/songs]
+        SongDetail[楽曲詳細<br/>/songs/:id]
     end
 
     subgraph 認証必須画面
-        Songs[楽曲一覧<br/>/songs]
         SongNew[楽曲新規作成<br/>/songs/new]
-        SongDetail[楽曲詳細<br/>/songs/:id]
         Editor[エディタ<br/>/editor/:id]
         Profile[プロフィール<br/>/profile]
         Bookmarks[ブックマーク一覧]
@@ -28,6 +28,7 @@ flowchart TB
     Home --> Login
     Home --> Register
     Home --> Search
+    Home --> Songs
     Login <--> Register
     Login -->|ログイン成功| Songs
     Register -->|登録成功| Songs
@@ -78,14 +79,18 @@ flowchart TB
         Register1[新規登録]
         Search1[検索]
         Share1[共有楽曲表示]
+        Songs1[楽曲一覧<br/>※公開楽曲の閲覧のみ]
+        SongDetail1[楽曲詳細<br/>※公開楽曲の閲覧のみ]
     end
 
     subgraph 認証済み状態
-        AllPages[全画面アクセス可能<br/>・楽曲一覧<br/>・楽曲詳細<br/>・楽曲新規作成<br/>・エディタ<br/>・検索<br/>・プロフィール<br/>・共有楽曲表示]
+        AllPages[全画面アクセス可能<br/>・楽曲一覧（自分の楽曲も表示）<br/>・楽曲詳細<br/>・楽曲新規作成<br/>・エディタ<br/>・検索<br/>・プロフィール<br/>・共有楽曲表示]
     end
 
     Home1 --> Login1
     Home1 --> Search1
+    Home1 --> Songs1
+    Songs1 --> SongDetail1
     Login1 <--> Register1
     Login1 -->|認証成功| AllPages
     Register1 -->|登録成功| AllPages
@@ -297,7 +302,7 @@ stateDiagram-v2
 | ホーム `/` | ○ | ○ | - | ログイン済みはリダイレクト可 |
 | ログイン `/login` | ○ | × | - | 認証済みは楽曲一覧へリダイレクト |
 | 新規登録 `/register` | ○ | × | - | 認証済みは楽曲一覧へリダイレクト |
-| 楽曲一覧 `/songs` | × | ○ | - | 要認証 |
+| 楽曲一覧 `/songs` | ○ | ○ | - | 未認証は公開楽曲のみ表示 |
 | 楽曲詳細 `/songs/:id` | △ | ○ | ○ | 公開楽曲のみ未認証でも閲覧可 |
 | 楽曲新規作成 `/songs/new` | × | ○ | - | 要認証 |
 | エディタ `/editor/:id` | × | △ | ○ | 所有者のみ編集可 |
@@ -330,7 +335,7 @@ flowchart LR
 
 | 条件 | 遷移元 | 遷移先 |
 |------|--------|--------|
-| 未認証で認証必須ページにアクセス | 任意 | `/login?redirect=元のURL` |
+| 未認証で認証必須ページにアクセス | `/songs/new`, `/editor/:id`, `/profile` | `/login?redirect=元のURL` |
 | 認証済みでログイン/登録画面にアクセス | `/login`, `/register` | `/songs` |
 | 存在しない楽曲IDにアクセス | `/songs/:id`, `/editor/:id` | `/songs` + エラー表示 |
 | 無効な共有トークン | `/share/:token` | `/` + エラー表示 |
