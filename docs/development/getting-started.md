@@ -24,7 +24,7 @@ cd ChordChart-app-draft
 ### 2. フロントエンドのセットアップ
 
 ```bash
-cd frontend
+cd apps/frontend
 
 # 依存関係のインストール
 pnpm install
@@ -38,7 +38,7 @@ cp .env.example .env.local
 ### 3. バックエンドのセットアップ
 
 ```bash
-cd backend/src/ChordBook.Api
+cd apps/backend/src/ChordBook.Api
 
 # 依存関係の復元
 dotnet restore
@@ -68,7 +68,7 @@ dotnet restore
 ### フロントエンド
 
 ```bash
-cd frontend
+cd apps/frontend
 pnpm dev
 ```
 
@@ -77,7 +77,7 @@ http://localhost:3000 でアクセスできます。
 ### バックエンド
 
 ```bash
-cd backend/src/ChordBook.Api
+cd apps/backend/src/ChordBook.Api
 dotnet run
 ```
 

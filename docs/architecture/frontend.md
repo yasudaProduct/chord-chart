@@ -16,7 +16,7 @@ Next.js 14 を使用したフロントエンドの設計を説明します。
 ## ディレクトリ構成
 
 ```
-frontend/
+apps/frontend/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── layout.tsx          # ルートレイアウト

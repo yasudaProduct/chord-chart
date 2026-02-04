@@ -115,19 +115,20 @@ API リクエスト → バックエンド処理 → DB 更新
 
 ```
 chord-book/
-├── frontend/                 # Next.js フロントエンド
-│   └── src/
-│       ├── app/              # App Router ページ
-│       ├── lib/              # ユーティリティ
-│       ├── stores/           # Zustand ストア
-│       └── types/            # TypeScript 型定義
-│
-├── backend/                  # ASP.NET Core バックエンド
-│   └── src/
-│       ├── ChordBook.Api/          # Web API 層
-│       ├── ChordBook.Application/  # アプリケーション層
-│       ├── ChordBook.Domain/       # ドメイン層
-│       └── ChordBook.Infrastructure/ # インフラ層
+├── apps/
+│   ├── frontend/                 # Next.js フロントエンド
+│   │   └── src/
+│   │       ├── app/              # App Router ページ
+│   │       ├── lib/              # ユーティリティ
+│   │       ├── stores/           # Zustand ストア
+│   │       └── types/            # TypeScript 型定義
+│   │
+│   └── backend/                  # ASP.NET Core バックエンド
+│       └── src/
+│           ├── ChordBook.Api/          # Web API 層
+│           ├── ChordBook.Application/  # アプリケーション層
+│           ├── ChordBook.Domain/       # ドメイン層
+│           └── ChordBook.Infrastructure/ # インフラ層
 │
 ├── docs/                     # ドキュメント
 └── .github/                  # GitHub Actions
