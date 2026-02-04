@@ -38,6 +38,11 @@
 - [バックエンドデプロイ](./deployment/backend-deploy.md) - Railway へのデプロイ手順
 - [トラブルシューティング](./deployment/troubleshooting.md) - よくある問題と解決方法
 
+### UI/UX
+
+- [画面一覧](./ui/screens.md) - 全画面の詳細仕様
+- [画面遷移図](./ui/screen-flow.md) - 画面間の遷移フロー
+
 ### 機能仕様
 
 - [機能一覧](./features/overview.md) - アプリケーションの機能概要
@@ -47,6 +52,7 @@
 | 用途 | リンク |
 |------|--------|
 | プロジェクトを理解する | [コンセプト](./project/concept.md) |
+| 画面仕様を見る | [画面一覧](./ui/screens.md) |
 | 開発を始める | [環境構築](./development/getting-started.md) |
 | APIを使う | [エンドポイント](./api/endpoints.md) |
 | DB設計を見る | [ER図](./database/er-diagram.md) |
