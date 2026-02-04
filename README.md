@@ -20,8 +20,9 @@
 
 ```
 chord-book/
-├── frontend/          # Next.js フロントエンド
-├── backend/           # ASP.NET Core バックエンド
+├── apps/
+│   ├── frontend/      # Next.js フロントエンド
+│   └── backend/       # ASP.NET Core バックエンド
 ├── docs/              # ドキュメント
 └── .github/           # GitHub Actions
 ```
@@ -37,7 +38,7 @@ chord-book/
 ### フロントエンド
 
 ```bash
-cd frontend
+cd apps/frontend
 pnpm install
 pnpm dev
 # http://localhost:3000
@@ -46,7 +47,7 @@ pnpm dev
 ### バックエンド
 
 ```bash
-cd backend/src/ChordBook.Api
+cd apps/backend/src/ChordBook.Api
 dotnet run
 # http://localhost:5000
 # Swagger: http://localhost:5000/swagger

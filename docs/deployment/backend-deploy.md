@@ -7,7 +7,7 @@ ASP.NET Core バックエンドを Railway にデプロイする手順です。
 - GitHub アカウント
 - Railway アカウント
 - リポジトリが GitHub にプッシュ済み
-- Dockerfile が `backend/` に存在
+- Dockerfile が `apps/backend/` に存在
 
 ---
 
@@ -27,7 +27,7 @@ ASP.NET Core バックエンドを Railway にデプロイする手順です。
 
 | 項目 | 値 |
 |------|-----|
-| Root Directory | backend |
+| Root Directory | apps/backend |
 | Builder | Dockerfile |
 | Dockerfile Path | Dockerfile |
 
@@ -50,7 +50,7 @@ ASP.NET Core バックエンドを Railway にデプロイする手順です。
 ## Dockerfile
 
 ```dockerfile
-# backend/Dockerfile
+# apps/backend/Dockerfile
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
@@ -124,7 +124,7 @@ GitHub 連携により自動デプロイ:
 ### トリガー設定
 
 1. プロジェクト設定 → **Deployments**
-2. **Watch Paths** で `backend/**` を設定
+2. **Watch Paths** で `apps/backend/**` を設定
 
 ---
 
@@ -229,7 +229,7 @@ railway up
 
 ```bash
 # ローカルでDockerビルド確認
-cd backend
+cd apps/backend
 docker build -t chordbook-api .
 docker run -p 5000:5000 chordbook-api
 ```

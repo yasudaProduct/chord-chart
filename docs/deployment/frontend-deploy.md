@@ -20,14 +20,14 @@ Next.js フロントエンドを Vercel にデプロイする手順です。
 
 1. **Add New** → **Project** をクリック
 2. **Import Git Repository** でリポジトリを選択
-3. **Root Directory** を `frontend` に設定
+3. **Root Directory** を `apps/frontend` に設定
 
 ### 3. ビルド設定
 
 | 項目 | 値 |
 |------|-----|
 | Framework Preset | Next.js |
-| Root Directory | frontend |
+| Root Directory | apps/frontend |
 | Build Command | pnpm build |
 | Install Command | pnpm install |
 | Output Directory | .next |
@@ -76,7 +76,7 @@ npm i -g vercel
 vercel login
 
 # デプロイ（Preview）
-cd frontend
+cd apps/frontend
 vercel
 
 # デプロイ（Production）
@@ -163,7 +163,7 @@ module.exports = {
 
 ```bash
 # ローカルでビルドを確認
-cd frontend
+cd apps/frontend
 pnpm build
 ```
 
