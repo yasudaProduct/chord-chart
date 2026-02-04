@@ -4,6 +4,10 @@
 
 ## 目次
 
+### プロジェクト概要
+
+- [コンセプト](./project/concept.md) - プロジェクトのビジョン、ターゲットユーザー、ロードマップ
+
 ### アーキテクチャ
 
 - [システム概要](./architecture/overview.md) - システム全体の構成図と技術スタック
@@ -42,6 +46,7 @@
 
 | 用途 | リンク |
 |------|--------|
+| プロジェクトを理解する | [コンセプト](./project/concept.md) |
 | 開発を始める | [環境構築](./development/getting-started.md) |
 | APIを使う | [エンドポイント](./api/endpoints.md) |
 | DB設計を見る | [ER図](./database/er-diagram.md) |
