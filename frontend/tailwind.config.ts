@@ -12,6 +12,17 @@ const config: Config = {
         primary: '#5c6bc0',
         'primary-hover': '#4a5ab9',
       },
+      fontFamily: {
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Hiragino Sans',
+          'Noto Sans JP',
+          'sans-serif',
+        ],
+        mono: ['Monaco', 'Menlo', 'Consolas', 'monospace'],
+      },
     },
   },
   plugins: [],
