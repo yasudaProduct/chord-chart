@@ -10,17 +10,7 @@ ChordBook バックエンド API のエンドポイント一覧です。
 | ベースURL（本番） | https://api.chordbook.example.com/api |
 | 形式 | REST API |
 | データ形式 | JSON |
-| 認証 | Bearer Token (Supabase JWT) |
-
-## 認証
-
-認証が必要なエンドポイントには、リクエストヘッダーに JWT トークンを含めます。
-
-```http
-Authorization: Bearer <supabase_access_token>
-```
-
-※ 現時点のバックエンド実装では JWT 検証の設定が未実装のため、本ドキュメントの「認証: 必要」は仕様上の要件（実装予定）です。
+| 認証 | なし（MVPフロント準拠） |
 
 ## OpenAPI（仕様の一次情報）
 
@@ -53,9 +43,18 @@ API 仕様の一次情報は OpenAPI で管理します。
 
 #### GET /api/songs
 
-ユーザーの楽曲一覧を取得します。
+楽曲一覧を取得します（MVPでは権限制御なし）。
 
-**認証**: 必要
+**認証**: なし
+
+**クエリパラメータ**
+
+| パラメータ | 型 | デフォルト | 説明 |
+|-----------|-----|-----------|------|
+| page | number | 1 | ページ番号 |
+| limit | number | 20 | 取得件数 |
+| sort | string | updatedAt | ソートキー |
+| order | string | desc | asc / desc |
 
 **レスポンス**
 
@@ -81,9 +80,9 @@ API 仕様の一次情報は OpenAPI で管理します。
 
 #### GET /api/songs/{id}
 
-指定した楽曲の詳細を取得します。
+指定した楽曲の詳細を取得します（MVPでは権限制御なし）。
 
-**認証**: 必要（所有者または公開曲のみ）
+**認証**: なし
 
 **パスパラメータ**
 
@@ -102,7 +101,12 @@ API 仕様の一次情報は OpenAPI で管理します。
   "bpm": 120,
   "timeSignature": "4/4",
   "content": [
-    { "id": "section-1", "name": "イントロ", "type": "bar", "lines": [] }
+    {
+      "id": "section-1",
+      "name": "イントロ",
+      "type": "bar",
+      "lines": [{ "bars": ["C", "G", "Am", "F"] }]
+    }
   ],
   "visibility": 0,
   "createdAt": "2024-01-10T08:00:00Z",
@@ -115,7 +119,6 @@ API 仕様の一次情報は OpenAPI で管理します。
 | ステータス | 説明 |
 |-----------|------|
 | 404 | 楽曲が見つからない |
-| 403 | アクセス権限がない |
 
 ---
 
@@ -123,7 +126,7 @@ API 仕様の一次情報は OpenAPI で管理します。
 
 新しい楽曲を作成します。
 
-**認証**: 必要
+**認証**: なし
 
 **リクエストボディ**
 
@@ -168,9 +171,9 @@ API 仕様の一次情報は OpenAPI で管理します。
 
 #### PUT /api/songs/{id}
 
-楽曲を更新します。
+楽曲を更新します（MVPでは権限制御なし）。
 
-**認証**: 必要（所有者のみ）
+**認証**: なし
 
 **パスパラメータ**
 
@@ -188,7 +191,17 @@ API 仕様の一次情報は OpenAPI で管理します。
   "bpm": 110,
   "timeSignature": "3/4",
   "content": [
-    { "id": "section-1", "name": "Aメロ", "type": "bar", "lines": [] }
+    {
+      "id": "section-1",
+      "name": "Aメロ",
+      "type": "lyrics-chord",
+      "lines": [
+        {
+          "lyrics": "きょうも いちにち",
+          "chords": [{ "chord": "C", "position": 0 }]
+        }
+      ]
+    }
   ]
 }
 ```
@@ -208,9 +221,9 @@ API 仕様の一次情報は OpenAPI で管理します。
 
 #### DELETE /api/songs/{id}
 
-楽曲を削除します。
+楽曲を削除します（MVPでは権限制御なし）。
 
-**認証**: 必要（所有者のみ）
+**認証**: なし
 
 **パスパラメータ**
 
@@ -245,23 +258,8 @@ API 仕様の一次情報は OpenAPI で管理します。
 | 201 | 作成成功 |
 | 204 | 成功（レスポンスボディなし） |
 | 400 | リクエスト不正 |
-| 401 | 認証エラー |
-| 403 | アクセス権限なし |
 | 404 | リソースが見つからない |
 | 500 | サーバーエラー |
-
-## 今後追加予定のエンドポイント
-
-| エンドポイント | 説明 |
-|---------------|------|
-| GET /api/songs/public | 公開曲の検索 |
-| POST /api/songs/{id}/share | 共有リンクの生成 |
-| GET /api/share/{token} | 共有リンクから曲を取得 |
-| GET /api/bookmarks | ブックマーク一覧 |
-| POST /api/bookmarks | ブックマーク追加 |
-| DELETE /api/bookmarks/{id} | ブックマーク削除 |
-| GET /api/users/me | 現在のユーザー情報 |
-| PUT /api/users/me | ユーザー情報更新 |
 
 ## Swagger UI
 

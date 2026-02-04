@@ -1,6 +1,37 @@
 import { api } from '@/lib/api'
 import { mockSongsApi } from '@/lib/mockSongs'
-import type { Section, Song, SongListItem, SongMeta, SongVisibility } from '@/types/song'
+import { generateId } from '@/lib/utils'
+import type {
+  BarLine,
+  LyricsChordLine,
+  Section,
+  Song,
+  SongListItem,
+  SongMeta,
+  SongVisibility,
+} from '@/types/song'
+import type { PaginatedResponse } from '@/types/api'
+
+type ApiChordPosition = {
+  chord: string
+  position: number
+}
+
+type ApiLyricsChordLine = {
+  lyrics: string
+  chords: ApiChordPosition[]
+}
+
+type ApiBarLine = {
+  bars: string[]
+}
+
+type ApiSection = {
+  id: string
+  name: string
+  type: 'lyrics-chord' | 'bar'
+  lines: Array<ApiLyricsChordLine | ApiBarLine>
+}
 
 type ApiSongDto = {
   id: string
@@ -9,7 +40,7 @@ type ApiSongDto = {
   key: string | null
   bpm: number | null
   timeSignature: string
-  content: string
+  content: ApiSection[]
   visibility: number | string | null
   createdAt: string
   updatedAt: string
@@ -23,17 +54,9 @@ type ApiSongListItemDto = {
   updatedAt: string
 }
 
-const apiMode = process.env.NEXT_PUBLIC_API_MODE ?? 'mock'
+type ApiSongListResponse = PaginatedResponse<ApiSongListItemDto>
 
-const safeJsonParse = (value: string | null): { sections: Section[] } => {
-  if (!value) return { sections: [] }
-  try {
-    const parsed = JSON.parse(value) as { sections?: Section[] }
-    return { sections: Array.isArray(parsed.sections) ? parsed.sections : [] }
-  } catch {
-    return { sections: [] }
-  }
-}
+const apiMode = process.env.NEXT_PUBLIC_API_MODE ?? 'mock'
 
 const mapVisibility = (value: ApiSongDto['visibility']): SongVisibility => {
   if (typeof value === 'string') {
@@ -54,8 +77,35 @@ const mapVisibility = (value: ApiSongDto['visibility']): SongVisibility => {
   }
 }
 
+const normalizeLyricsLine = (line: ApiLyricsChordLine): LyricsChordLine => ({
+  id: generateId(),
+  lyrics: line.lyrics ?? '',
+  chords: (line.chords ?? [])
+    .map((chord) => ({
+      id: generateId(),
+      chord: chord.chord ?? '',
+      position: Math.max(0, Math.floor(chord.position ?? 0)),
+    }))
+    .sort((a, b) => a.position - b.position),
+})
+
+const normalizeBarLine = (line: ApiBarLine): BarLine => ({
+  id: generateId(),
+  bars: Array.isArray(line.bars) ? line.bars.filter((bar) => typeof bar === 'string') : [],
+})
+
+const normalizeSection = (section: ApiSection): Section => ({
+  id: section.id,
+  name: section.name,
+  type: section.type,
+  lines: (section.lines ?? []).map((line) =>
+    section.type === 'bar'
+      ? normalizeBarLine(line as ApiBarLine)
+      : normalizeLyricsLine(line as ApiLyricsChordLine)
+  ),
+})
+
 const toSong = (dto: ApiSongDto): Song => {
-  const { sections } = safeJsonParse(dto.content)
   return {
     id: dto.id,
     title: dto.title,
@@ -63,7 +113,7 @@ const toSong = (dto: ApiSongDto): Song => {
     key: dto.key ?? '',
     bpm: dto.bpm ?? undefined,
     timeSignature: dto.timeSignature ?? '4/4',
-    sections,
+    sections: (dto.content ?? []).map(normalizeSection),
     visibility: mapVisibility(dto.visibility),
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
@@ -78,15 +128,56 @@ const toSongListItem = (dto: ApiSongListItemDto): SongListItem => ({
   updatedAt: dto.updatedAt,
 })
 
-const toContent = (sections: Section[]) => JSON.stringify({ sections })
+const toApiSection = (section: Section): ApiSection => {
+  if (section.type === 'bar') {
+    return {
+      id: section.id,
+      name: section.name,
+      type: 'bar',
+      lines: section.lines.map((line) => ({
+        bars: Array.isArray((line as BarLine).bars)
+          ? (line as BarLine).bars.filter((bar) => typeof bar === 'string')
+          : [],
+      })),
+    }
+  }
+  return {
+    id: section.id,
+    name: section.name,
+    type: 'lyrics-chord',
+    lines: section.lines.map((line) => ({
+      lyrics: (line as LyricsChordLine).lyrics ?? '',
+      chords: ((line as LyricsChordLine).chords ?? []).map((chord) => ({
+        chord: chord.chord,
+        position: Math.max(0, Math.floor(chord.position)),
+      })),
+    })),
+  }
+}
+
+const toApiContent = (sections: Section[]) => sections.map(toApiSection)
 
 export const songApi = {
-  async list(): Promise<SongListItem[]> {
+  async list(params?: {
+    page?: number
+    limit?: number
+    sort?: 'updatedAt' | 'title'
+    order?: 'asc' | 'desc'
+  }): Promise<PaginatedResponse<SongListItem>> {
     if (apiMode === 'mock') {
-      return mockSongsApi.list()
+      return mockSongsApi.list(params)
     }
-    const response = await api.get<ApiSongListItemDto[]>('/songs')
-    return response.map(toSongListItem)
+    const query = new URLSearchParams()
+    if (params?.page) query.set('page', String(params.page))
+    if (params?.limit) query.set('limit', String(params.limit))
+    if (params?.sort) query.set('sort', params.sort)
+    if (params?.order) query.set('order', params.order)
+    const suffix = query.toString()
+    const response = await api.get<ApiSongListResponse>(`/songs${suffix ? `?${suffix}` : ''}`)
+    return {
+      ...response,
+      items: response.items.map(toSongListItem),
+    }
   },
 
   async get(id: string): Promise<Song> {
@@ -115,14 +206,15 @@ export const songApi = {
     if (apiMode === 'mock') {
       return mockSongsApi.update(id, updates)
     }
-    const dto = await api.put<ApiSongDto>(`/songs/${id}`, {
+    await api.put<void>(`/songs/${id}`, {
       title: updates.title ?? '',
       artist: updates.artist ?? null,
       key: updates.key ?? null,
       bpm: updates.bpm ?? null,
       timeSignature: updates.timeSignature ?? '4/4',
-      content: toContent(updates.sections ?? []),
+      content: toApiContent(updates.sections ?? []),
     })
+    const dto = await api.get<ApiSongDto>(`/songs/${id}`)
     return toSong(dto)
   },
 

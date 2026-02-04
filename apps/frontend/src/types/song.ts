@@ -1,12 +1,31 @@
-export type SectionType = 'lyrics-chord' | 'chord-only'
+export type SectionType = 'lyrics-chord' | 'bar'
 
 export type SongVisibility = 'private' | 'url-only' | 'specific-users' | 'public'
+
+export interface ChordPosition {
+  id?: string
+  chord: string
+  position: number
+}
+
+export interface LyricsChordLine {
+  id?: string
+  lyrics: string
+  chords: ChordPosition[]
+}
+
+export interface BarLine {
+  id?: string
+  bars: string[]
+}
+
+export type SectionLine = LyricsChordLine | BarLine
 
 export interface Section {
   id: string
   name: string
   type: SectionType
-  content: string
+  lines: SectionLine[]
 }
 
 export interface SongMeta {

@@ -9,11 +9,11 @@ import {
   createEmptyLine,
   createSection,
   parseSectionContent,
-  serializeSectionContent,
+  type BarSectionLine,
   type ChordBlock,
-  type SectionLine,
+  type LyricsLine,
 } from "@/lib/sectionContent";
-import type { Section, SectionType, Song } from "@/types/song";
+import type { Section, SectionLine, SectionType, Song } from "@/types/song";
 
 const CHORD_LIBRARY = ["A", "Am", "A7", "Am7", "Amaj7", "Asus4", "Aadd9"];
 const NEXT_CHORDS = ["G", "C", "Am", "Dm"];
@@ -22,27 +22,46 @@ const SUBSTITUTE_CHORDS = ["Am7", "Fmaj7", "Dm7"];
 const clamp = (value: number, min = 0, max = 1) =>
   Math.min(max, Math.max(min, value));
 
-const cloneSectionContent = (content: string) => {
-  const parsed = parseSectionContent(content);
-  const clonedLines: SectionLine[] = parsed.lines.map((line) => ({
+const positionToOffset = (position: number, lyrics: string) =>
+  clamp(position / Math.max(lyrics.length, 1));
+
+const offsetToPosition = (offset: number, lyrics: string) =>
+  Math.max(0, Math.round(offset * Math.max(lyrics.length, 1)));
+
+const barIndexToOffset = (index: number, total: number) =>
+  (index + 1) / (total + 1);
+
+const offsetToBarIndex = (offset: number, total: number) =>
+  Math.max(0, Math.min(total, Math.round(offset * total)));
+
+const cloneSectionLines = (section: Section): SectionLine[] => {
+  const parsed = parseSectionContent(section.lines, section.type);
+  if (section.type === "bar") {
+    return (parsed.lines as BarSectionLine[]).map((line) => ({
+      id: generateId(),
+      bars: line.bars.slice(),
+    }));
+  }
+  return (parsed.lines as LyricsLine[]).map((line) => ({
     id: generateId(),
     lyrics: line.lyrics,
     chords: line.chords.map((chord) => ({
       id: generateId(),
       chord: chord.chord,
-      offset: chord.offset,
+      position: chord.position,
     })),
   }));
-  return serializeSectionContent(clonedLines);
 };
 
 type ChordDialogState = {
   sectionId: string;
   lineId: string;
   chordId?: string;
-  offset: number;
+  chordPosition: number;
   value: string;
-  position: { x: number; y: number };
+  anchor: { x: number; y: number };
+  sectionType: SectionType;
+  barIndex?: number;
 };
 
 type DragChordState = {
@@ -92,7 +111,15 @@ export default function EditorPage() {
         const offset = clamp(
           (event.clientX - prev.rect.left) / prev.rect.width
         );
-        updateChordOffset(prev.sectionId, prev.lineId, prev.chordId, offset);
+        const line = findLine(prev.sectionId, prev.lineId);
+        if (!line || "bars" in line) return prev;
+        const position = offsetToPosition(offset, line.lyrics);
+        updateChordPosition(
+          prev.sectionId,
+          prev.lineId,
+          prev.chordId,
+          position
+        );
         return {
           ...prev,
           moved: prev.moved || Math.abs(event.clientX - prev.startX) > 3,
@@ -104,18 +131,24 @@ export default function EditorPage() {
       setDraggingChord((prev) => {
         if (prev && !prev.moved) {
           const targetLine = findLine(prev.sectionId, prev.lineId);
-          const chord = targetLine?.chords.find(
+          if (!targetLine || !("chords" in targetLine)) {
+            return null;
+          }
+          const chord = targetLine.chords.find(
             (item) => item.id === prev.chordId
           );
           if (chord) {
+            const lyrics = targetLine.lyrics ?? "";
+            const offset = positionToOffset(chord.position, lyrics);
             openDialog({
               sectionId: prev.sectionId,
               lineId: prev.lineId,
               chordId: chord.id,
-              offset: chord.offset,
+              chordPosition: chord.position,
               value: chord.chord,
-              position: {
-                x: prev.rect.left + prev.rect.width * chord.offset,
+              sectionType: "lyrics-chord",
+              anchor: {
+                x: prev.rect.left + prev.rect.width * offset,
                 y: prev.rect.top,
               },
             });
@@ -156,11 +189,11 @@ export default function EditorPage() {
     updater: (lines: SectionLine[]) => SectionLine[]
   ) => {
     updateSection(sectionId, (section) => {
-      const { lines } = parseSectionContent(section.content);
+      const { lines } = parseSectionContent(section.lines, section.type);
       const nextLines = updater(lines);
       return {
         ...section,
-        content: serializeSectionContent(nextLines),
+        lines: nextLines,
       };
     });
   };
@@ -168,27 +201,26 @@ export default function EditorPage() {
   const findLine = (sectionId: string, lineId: string) => {
     const section = song?.sections.find((item) => item.id === sectionId);
     if (!section) return null;
-    const { lines } = parseSectionContent(section.content);
+    const { lines } = parseSectionContent(section.lines, section.type);
     return lines.find((line) => line.id === lineId) ?? null;
   };
 
-  const updateChordOffset = (
+  const updateChordPosition = (
     sectionId: string,
     lineId: string,
     chordId: string,
-    offset: number
+    position: number
   ) => {
     updateSectionLines(sectionId, (lines) =>
-      lines.map((line) =>
-        line.id === lineId
-          ? {
-              ...line,
-              chords: line.chords.map((chord) =>
-                chord.id === chordId ? { ...chord, offset } : chord
-              ),
-            }
-          : line
-      )
+      lines.map((line) => {
+        if (line.id !== lineId || !("chords" in line)) return line;
+        return {
+          ...line,
+          chords: line.chords.map((chord) =>
+            chord.id === chordId ? { ...chord, position } : chord
+          ),
+        };
+      })
     );
   };
 
@@ -239,7 +271,7 @@ export default function EditorPage() {
         ...source,
         id: generateId(),
         name: `${source.name} コピー`,
-        content: cloneSectionContent(source.content),
+        lines: cloneSectionLines(source),
       };
       const next = [...current.sections];
       next.splice(index + 1, 0, duplicated);
@@ -267,7 +299,10 @@ export default function EditorPage() {
   };
 
   const addLine = (sectionId: string) => {
-    updateSectionLines(sectionId, (lines) => [...lines, createEmptyLine()]);
+    updateSection(sectionId, (section) => {
+      const { lines } = parseSectionContent(section.lines, section.type);
+      return { ...section, lines: [...lines, createEmptyLine(section.type)] };
+    });
   };
 
   const updateLineLyrics = (
@@ -276,7 +311,9 @@ export default function EditorPage() {
     lyrics: string
   ) => {
     updateSectionLines(sectionId, (lines) =>
-      lines.map((line) => (line.id === lineId ? { ...line, lyrics } : line))
+      lines.map((line) =>
+        line.id === lineId && "lyrics" in line ? { ...line, lyrics } : line
+      )
     );
   };
 
@@ -284,20 +321,19 @@ export default function EditorPage() {
     sectionId: string,
     lineId: string,
     chord: string,
-    offset: number
+    position: number
   ) => {
     updateSectionLines(sectionId, (lines) =>
-      lines.map((line) =>
-        line.id === lineId
-          ? {
-              ...line,
-              chords: [
-                ...line.chords,
-                { id: generateId(), chord, offset },
-              ].sort((a, b) => a.offset - b.offset),
-            }
-          : line
-      )
+      lines.map((line) => {
+        if (line.id !== lineId || !("chords" in line)) return line;
+        return {
+          ...line,
+          chords: [
+            ...line.chords,
+            { id: generateId(), chord, position },
+          ].sort((a, b) => a.position - b.position),
+        };
+      })
     );
   };
 
@@ -308,29 +344,74 @@ export default function EditorPage() {
     chord: string
   ) => {
     updateSectionLines(sectionId, (lines) =>
-      lines.map((line) =>
-        line.id === lineId
-          ? {
-              ...line,
-              chords: line.chords.map((item) =>
-                item.id === chordId ? { ...item, chord } : item
-              ),
-            }
-          : line
-      )
+      lines.map((line) => {
+        if (line.id !== lineId || !("chords" in line)) return line;
+        return {
+          ...line,
+          chords: line.chords.map((item) =>
+            item.id === chordId ? { ...item, chord } : item
+          ),
+        };
+      })
     );
   };
 
   const deleteChord = (sectionId: string, lineId: string, chordId: string) => {
     updateSectionLines(sectionId, (lines) =>
-      lines.map((line) =>
-        line.id === lineId
-          ? {
-              ...line,
-              chords: line.chords.filter((item) => item.id !== chordId),
-            }
-          : line
-      )
+      lines.map((line) => {
+        if (line.id !== lineId || !("chords" in line)) return line;
+        return {
+          ...line,
+          chords: line.chords.filter((item) => item.id !== chordId),
+        };
+      })
+    );
+  };
+
+  const addBarChord = (
+    sectionId: string,
+    lineId: string,
+    insertIndex: number,
+    chord: string
+  ) => {
+    updateSectionLines(sectionId, (lines) =>
+      lines.map((line) => {
+        if (line.id !== lineId || !("bars" in line)) return line;
+        const nextBars = line.bars.slice();
+        nextBars.splice(Math.min(insertIndex, nextBars.length), 0, chord);
+        return { ...line, bars: nextBars };
+      })
+    );
+  };
+
+  const updateBarChord = (
+    sectionId: string,
+    lineId: string,
+    barIndex: number,
+    chord: string
+  ) => {
+    updateSectionLines(sectionId, (lines) =>
+      lines.map((line) => {
+        if (line.id !== lineId || !("bars" in line)) return line;
+        const nextBars = line.bars.slice();
+        nextBars[barIndex] = chord;
+        return { ...line, bars: nextBars };
+      })
+    );
+  };
+
+  const deleteBarChord = (
+    sectionId: string,
+    lineId: string,
+    barIndex: number
+  ) => {
+    updateSectionLines(sectionId, (lines) =>
+      lines.map((line) => {
+        if (line.id !== lineId || !("bars" in line)) return line;
+        const nextBars = line.bars.slice();
+        nextBars.splice(barIndex, 1);
+        return { ...line, bars: nextBars };
+      })
     );
   };
 
@@ -340,13 +421,13 @@ export default function EditorPage() {
       const height = 260;
       const x = Math.min(
         window.innerWidth - width - 16,
-        Math.max(16, next.position.x - width / 2)
+        Math.max(16, next.anchor.x - width / 2)
       );
       const y = Math.min(
         window.innerHeight - height - 16,
-        Math.max(96, next.position.y + 16)
+        Math.max(96, next.anchor.y + 16)
       );
-      setDialog({ ...next, position: { x, y } });
+      setDialog({ ...next, anchor: { x, y } });
       return;
     }
     setDialog(next);
@@ -359,18 +440,57 @@ export default function EditorPage() {
   ) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const offset = clamp((event.clientX - rect.left) / rect.width);
+    const section = song?.sections.find((item) => item.id === sectionId);
+    if (!section) return;
+    const targetLine = findLine(sectionId, lineId);
+    if (!targetLine) return;
+    if (section.type === "bar") {
+      const bars = "bars" in targetLine ? targetLine.bars : [];
+      const insertIndex = offsetToBarIndex(offset, bars.length);
+      openDialog({
+        sectionId,
+        lineId,
+        chordPosition: insertIndex,
+        value: "",
+        sectionType: "bar",
+        anchor: { x: event.clientX, y: rect.top },
+      });
+      return;
+    }
+    const lyrics = "lyrics" in targetLine ? targetLine.lyrics : "";
+    const position = offsetToPosition(offset, lyrics);
     openDialog({
       sectionId,
       lineId,
-      offset,
+      chordPosition: position,
       value: "",
-      position: { x: event.clientX, y: rect.top },
+      sectionType: "lyrics-chord",
+      anchor: { x: event.clientX, y: rect.top },
     });
   };
 
   const handleChordConfirm = () => {
     if (!dialog) return;
     if (!dialog.value.trim()) {
+      setDialog(null);
+      return;
+    }
+    if (dialog.sectionType === "bar") {
+      if (typeof dialog.barIndex === "number") {
+        updateBarChord(
+          dialog.sectionId,
+          dialog.lineId,
+          dialog.barIndex,
+          dialog.value.trim()
+        );
+      } else {
+        addBarChord(
+          dialog.sectionId,
+          dialog.lineId,
+          dialog.chordPosition,
+          dialog.value.trim()
+        );
+      }
       setDialog(null);
       return;
     }
@@ -386,14 +506,21 @@ export default function EditorPage() {
         dialog.sectionId,
         dialog.lineId,
         dialog.value.trim(),
-        dialog.offset
+        dialog.chordPosition
       );
     }
     setDialog(null);
   };
 
   const handleChordDelete = () => {
-    if (!dialog || !dialog.chordId) return;
+    if (!dialog) return;
+    if (dialog.sectionType === "bar") {
+      if (typeof dialog.barIndex !== "number") return;
+      deleteBarChord(dialog.sectionId, dialog.lineId, dialog.barIndex);
+      setDialog(null);
+      return;
+    }
+    if (!dialog.chordId) return;
     deleteChord(dialog.sectionId, dialog.lineId, dialog.chordId);
     setDialog(null);
   };
@@ -402,9 +529,24 @@ export default function EditorPage() {
     event: React.PointerEvent<HTMLButtonElement>,
     sectionId: string,
     lineId: string,
-    chord: ChordBlock
+    chord: ChordBlock,
+    sectionType: SectionType,
+    barIndex?: number
   ) => {
     event.stopPropagation();
+    if (sectionType === "bar") {
+      const rect = event.currentTarget.getBoundingClientRect();
+      openDialog({
+        sectionId,
+        lineId,
+        chordPosition: barIndex ?? 0,
+        value: chord.chord,
+        sectionType: "bar",
+        barIndex,
+        anchor: { x: rect.left, y: rect.top },
+      });
+      return;
+    }
     const rect = event.currentTarget.parentElement?.getBoundingClientRect();
     if (!rect) return;
     setDraggingChord({
@@ -619,7 +761,7 @@ export default function EditorPage() {
 
           <div className="mt-6 space-y-4">
             {song.sections.map((section, index) => {
-              const content = parseSectionContent(section.content);
+              const content = parseSectionContent(section.lines, section.type);
               return (
                 <div
                   key={section.id}
@@ -658,7 +800,7 @@ export default function EditorPage() {
                         className="rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-slate-600 outline-none focus:border-primary"
                       />
                       <div className="flex rounded-md bg-slate-200 p-1 text-xs">
-                        {(["lyrics-chord", "chord-only"] as const).map(
+                        {(["lyrics-chord", "bar"] as const).map(
                           (type) => (
                             <button
                               key={type}
@@ -676,9 +818,7 @@ export default function EditorPage() {
                                   : "text-slate-600"
                               )}
                             >
-                              {type === "lyrics-chord"
-                                ? "歌詞+コード"
-                                : "コード"}
+                              {type === "lyrics-chord" ? "歌詞+コード" : "小節"}
                             </button>
                           )
                         )}
@@ -727,41 +867,98 @@ export default function EditorPage() {
                   </div>
 
                   <div className="space-y-5 px-4 py-5">
-                    {content.lines.map((line) => (
-                      <div key={line.id} className="space-y-2">
-                        <div
-                          className="relative min-h-[36px] rounded-md border border-slate-200 bg-white"
-                          onClick={(event) =>
-                            handleChordRowClick(event, section.id, line.id)
-                          }
-                        >
-                          {line.chords.map((chord) => (
-                            <button
-                              key={chord.id}
-                              type="button"
-                              onClick={(event) => event.stopPropagation()}
-                              onPointerDown={(event) =>
-                                handleChordBlockPointerDown(
+                    {content.lines.map((line) => {
+                      if (section.type === "bar") {
+                        const barLine = line as BarSectionLine;
+                        const bars = barLine.bars ?? [];
+                        return (
+                          <div key={barLine.id} className="space-y-2">
+                            <div
+                              className="relative min-h-[36px] rounded-md border border-slate-200 bg-white"
+                              onClick={(event) =>
+                                handleChordRowClick(
                                   event,
                                   section.id,
-                                  line.id,
-                                  chord
+                                  barLine.id
                                 )
                               }
-                              className="absolute rounded-md bg-indigo-500 px-2 py-1 text-xs font-semibold text-white shadow"
-                              style={{
-                                left: `${chord.offset * 100}%`,
-                                transform: "translateX(-50%)",
-                              }}
                             >
-                              {chord.chord}
-                            </button>
-                          ))}
-                        </div>
-                        {section.type === "lyrics-chord" && (
+                              {bars.map((bar, index) => (
+                                <button
+                                  key={`${barLine.id}-${index}`}
+                                  type="button"
+                                  onClick={(event) => event.stopPropagation()}
+                                  onPointerDown={(event) =>
+                                    handleChordBlockPointerDown(
+                                      event,
+                                      section.id,
+                                      barLine.id,
+                                      {
+                                        id: `${barLine.id}-${index}`,
+                                        chord: bar,
+                                        position: index,
+                                      },
+                                      section.type,
+                                      index
+                                    )
+                                  }
+                                  className="absolute rounded-md bg-indigo-500 px-2 py-1 text-xs font-semibold text-white shadow"
+                                  style={{
+                                    left: `${
+                                      barIndexToOffset(index, bars.length) * 100
+                                    }%`,
+                                    transform: "translateX(-50%)",
+                                  }}
+                                >
+                                  {bar}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const lyricsLine = line as LyricsLine;
+                      return (
+                        <div key={lyricsLine.id} className="space-y-2">
+                          <div
+                            className="relative min-h-[36px] rounded-md border border-slate-200 bg-white"
+                            onClick={(event) =>
+                              handleChordRowClick(event, section.id, line.id)
+                            }
+                          >
+                            {lyricsLine.chords.map((chord) => (
+                              <button
+                                key={chord.id}
+                                type="button"
+                                onClick={(event) => event.stopPropagation()}
+                                onPointerDown={(event) =>
+                                  handleChordBlockPointerDown(
+                                    event,
+                                    section.id,
+                                    line.id,
+                                    chord,
+                                    section.type
+                                  )
+                                }
+                                className="absolute rounded-md bg-indigo-500 px-2 py-1 text-xs font-semibold text-white shadow"
+                                style={{
+                                  left: `${
+                                    positionToOffset(
+                                      chord.position,
+                                      lyricsLine.lyrics
+                                    ) * 100
+                                  }%`,
+                                  transform: "translateX(-50%)",
+                                }}
+                              >
+                                {chord.chord}
+                              </button>
+                            ))}
+                          </div>
                           <input
                             type="text"
-                            value={line.lyrics}
+                            value={lyricsLine.lyrics}
                             onChange={(event) =>
                               updateLineLyrics(
                                 section.id,
@@ -772,9 +969,9 @@ export default function EditorPage() {
                             placeholder="歌詞を入力...（上のエリアをクリックでコード配置）"
                             className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
                           />
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
 
                     <button
                       type="button"
@@ -818,7 +1015,7 @@ export default function EditorPage() {
               ))}
               <button
                 type="button"
-                onClick={() => addSection("コード進行", "chord-only")}
+                onClick={() => addSection("コード進行", "bar")}
                 className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white hover:bg-primary-hover"
               >
                 コードのみ追加
@@ -849,36 +1046,67 @@ export default function EditorPage() {
 
             <div className="mt-6 space-y-6">
               {song.sections.map((section) => {
-                const content = parseSectionContent(section.content);
+                const content = parseSectionContent(section.lines, section.type);
                 return (
                   <div key={`${section.id}-preview`}>
                     <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
                       {section.name}
                     </p>
                     <div className="mt-3 space-y-4">
-                      {content.lines.map((line) => (
-                        <div key={line.id} className="space-y-1">
-                          <div className="relative h-6">
-                            {line.chords.map((chord) => (
-                              <span
-                                key={chord.id}
-                                className="absolute text-sm font-semibold text-primary"
-                                style={{
-                                  left: `${chord.offset * 100}%`,
-                                  transform: "translateX(-50%)",
-                                }}
-                              >
-                                {chord.chord}
-                              </span>
-                            ))}
-                          </div>
-                          {section.type === "lyrics-chord" && (
-                            <div className="text-sm text-slate-800">
-                              {line.lyrics}
+                      {content.lines.map((line) => {
+                        if (section.type === "bar") {
+                          const barLine = line as BarSectionLine;
+                          const bars = barLine.bars ?? [];
+                          return (
+                            <div key={barLine.id} className="space-y-1">
+                              <div className="relative h-6">
+                                {bars.map((bar, index) => (
+                                  <span
+                                    key={`${barLine.id}-${index}`}
+                                    className="absolute text-sm font-semibold text-primary"
+                                    style={{
+                                      left: `${
+                                        barIndexToOffset(index, bars.length) * 100
+                                      }%`,
+                                      transform: "translateX(-50%)",
+                                    }}
+                                  >
+                                    {bar}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                          );
+                        }
+
+                        const lyricsLine = line as LyricsLine;
+                        return (
+                          <div key={lyricsLine.id} className="space-y-1">
+                            <div className="relative h-6">
+                              {lyricsLine.chords.map((chord) => (
+                                <span
+                                  key={chord.id}
+                                  className="absolute text-sm font-semibold text-primary"
+                                  style={{
+                                    left: `${
+                                      positionToOffset(
+                                        chord.position,
+                                        lyricsLine.lyrics
+                                      ) * 100
+                                    }%`,
+                                    transform: "translateX(-50%)",
+                                  }}
+                                >
+                                  {chord.chord}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-sm text-slate-800">
+                              {lyricsLine.lyrics}
+                            </div>
+                          </div>
+                        );
+                      })}
                       {content.lines.length === 0 && (
                         <div className="text-sm text-slate-400">（未入力）</div>
                       )}
@@ -896,8 +1124,8 @@ export default function EditorPage() {
           <div
             className="absolute rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
             style={{
-              left: dialog.position.x,
-              top: dialog.position.y,
+              left: dialog.anchor.x,
+              top: dialog.anchor.y,
               width: 320,
             }}
             onClick={(event) => event.stopPropagation()}

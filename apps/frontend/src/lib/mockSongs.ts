@@ -1,5 +1,13 @@
-import { serializeSectionContent } from '@/lib/sectionContent'
-import type { Song, SongListItem, SongMeta, SongVisibility } from '@/types/song'
+import type {
+  BarLine,
+  ChordPosition,
+  LyricsChordLine,
+  Song,
+  SongListItem,
+  SongMeta,
+  SongVisibility,
+} from '@/types/song'
+import type { PaginatedResponse } from '@/types/api'
 
 const STORAGE_KEY = 'chordbook:songs'
 
@@ -21,43 +29,114 @@ const safeParse = <T>(value: string | null, fallback: T): T => {
   }
 }
 
-const parseBarContent = (content: string) => {
-  const bars = content
-    .split('|')
-    .map((item) => item.trim())
-    .filter(Boolean)
-  if (bars.length === 0) return serializeSectionContent([])
-  const chords = bars.map((chord, index) => ({
-    chord,
-    offset: (index + 1) / (bars.length + 1),
-  }))
-  return serializeSectionContent([createLine('', chords)])
-}
+const toPosition = (offset: number, lyrics: string) =>
+  Math.max(0, Math.round(offset * Math.max(lyrics.length, 1)))
 
-const normalizeStoredSongs = (songs: Song[]): Song[] =>
-  songs.map((song) => ({
-    ...song,
-    sections: song.sections.map((section) => {
-      if ((section as { type: string }).type === 'bar') {
-        return {
-          ...section,
-          type: 'chord-only',
-          content: parseBarContent(section.content),
-        }
-      }
-      return section
-    }),
-  }))
-
-const createLine = (lyrics: string, chords: Array<{ chord: string; offset: number }>) => ({
+const createLyricsLine = (
+  lyrics: string,
+  chords: Array<{ chord: string; offset: number }>
+): LyricsChordLine => ({
   id: createId(),
   lyrics,
   chords: chords.map((item) => ({
     id: createId(),
     chord: item.chord,
-    offset: item.offset,
+    position: toPosition(item.offset, lyrics),
   })),
 })
+
+const createBarLine = (bars: string[]): BarLine => ({
+  id: createId(),
+  bars,
+})
+
+const normalizeChordPositions = (
+  chords: Array<{ chord?: string; position?: number | string }> | undefined
+): ChordPosition[] =>
+  (chords ?? []).map((item) => ({
+    id: createId(),
+    chord: typeof item.chord === 'string' ? item.chord : '',
+    position:
+      typeof item.position === 'number'
+        ? Math.max(0, Math.floor(item.position))
+        : typeof item.position === 'string'
+          ? Math.max(0, Math.floor(Number(item.position)))
+          : 0,
+  }))
+
+const normalizeStoredSongs = (songs: Song[]): Song[] =>
+  songs.map((song) => ({
+    ...song,
+    sections: song.sections.map((section) => {
+      if ('lines' in section && Array.isArray(section.lines)) {
+        if (section.type === 'bar') {
+          return {
+            ...section,
+            lines: section.lines.map((line) => ({
+              id: line.id ?? createId(),
+              bars: Array.isArray((line as BarLine).bars)
+                ? (line as BarLine).bars.filter((bar) => typeof bar === 'string')
+                : [],
+            })),
+          }
+        }
+        return {
+          ...section,
+          lines: section.lines.map((line) => ({
+            id: line.id ?? createId(),
+            lyrics: (line as LyricsChordLine).lyrics ?? '',
+            chords: normalizeChordPositions((line as LyricsChordLine).chords),
+          })),
+        }
+      }
+      if (!('content' in section)) return section
+      const legacyContent = (section as { content?: string }).content
+      if (typeof legacyContent !== 'string') return section
+      try {
+        const parsed = JSON.parse(legacyContent) as {
+          lines?: Array<{
+            lyrics?: string
+            chords?: Array<{ chord?: string; offset?: number }>
+          }>
+        }
+        const lines = (parsed.lines ?? []).map((line) => {
+          const lyrics = line.lyrics ?? ''
+          const legacyChords = line.chords ?? []
+          const chords = legacyChords.map((item) => ({
+            id: createId(),
+            chord: typeof item.chord === 'string' ? item.chord : '',
+            position: toPosition(item.offset ?? 0, lyrics),
+          }))
+          return { id: createId(), lyrics, chords }
+        })
+        if ((section as { type: string }).type === 'chord-only') {
+          return {
+            ...section,
+            type: 'bar',
+            lines: [
+              {
+                id: createId(),
+                bars: lines.flatMap((line) =>
+                  line.chords.map((chord) => chord.chord)
+                ),
+              },
+            ],
+          }
+        }
+        return {
+          ...section,
+          type: 'lyrics-chord',
+          lines,
+        }
+      } catch {
+        return {
+          ...section,
+          type: 'lyrics-chord',
+          lines: [{ id: createId(), lyrics: '', chords: [] }],
+        }
+      }
+    }),
+  }))
 
 const seedSongs = (): Song[] => [
   {
@@ -72,28 +151,23 @@ const seedSongs = (): Song[] => [
       {
         id: createId(),
         name: 'Intro',
-        type: 'chord-only',
-        content: serializeSectionContent([
-          createLine('', [
-            { chord: 'Am', offset: 0.1 },
-            { chord: 'F', offset: 0.35 },
-            { chord: 'C', offset: 0.6 },
-            { chord: 'G', offset: 0.85 },
-          ]),
-        ]),
+        type: 'bar',
+        lines: [
+          createBarLine(['Am', 'F', 'C', 'G']),
+        ],
       },
       {
         id: createId(),
         name: 'Aメロ',
         type: 'lyrics-chord',
-        content: serializeSectionContent([
-          createLine('夜の風が うたう', [
+        lines: [
+          createLyricsLine('夜の風が うたう', [
             { chord: 'Am', offset: 0.05 },
             { chord: 'F', offset: 0.35 },
             { chord: 'C', offset: 0.6 },
             { chord: 'G', offset: 0.85 },
           ]),
-        ]),
+        ],
       },
     ],
     createdAt: nowIso(),
@@ -112,14 +186,14 @@ const seedSongs = (): Song[] => [
         id: createId(),
         name: 'Chorus',
         type: 'lyrics-chord',
-        content: serializeSectionContent([
-          createLine('Shine on, shine on', [
+        lines: [
+          createLyricsLine('Shine on, shine on', [
             { chord: 'C', offset: 0.05 },
             { chord: 'G', offset: 0.35 },
             { chord: 'Am', offset: 0.6 },
             { chord: 'F', offset: 0.85 },
           ]),
-        ]),
+        ],
       },
     ],
     createdAt: nowIso(),
@@ -157,12 +231,37 @@ const normalizeVisibility = (value?: SongVisibility): SongVisibility =>
   value ?? 'private'
 
 export const mockSongsApi = {
-  async list(): Promise<SongListItem[]> {
+  async list(params?: {
+    page?: number
+    limit?: number
+    sort?: 'updatedAt' | 'title'
+    order?: 'asc' | 'desc'
+  }): Promise<PaginatedResponse<SongListItem>> {
     const songs = readSongs()
-    return songs
-      .slice()
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .map(toListItem)
+    const page = Math.max(1, params?.page ?? 1)
+    const limit = Math.max(1, Math.min(100, params?.limit ?? 20))
+    const sort = params?.sort ?? 'updatedAt'
+    const order = params?.order ?? 'desc'
+
+    const sorted = songs.slice().sort((a, b) => {
+      const compare =
+        sort === 'title'
+          ? a.title.localeCompare(b.title)
+          : a.updatedAt.localeCompare(b.updatedAt)
+      return order === 'asc' ? compare : -compare
+    })
+
+    const total = sorted.length
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+    const startIndex = (page - 1) * limit
+    const items = sorted.slice(startIndex, startIndex + limit).map(toListItem)
+    return {
+      items,
+      total,
+      page,
+      pageSize: limit,
+      totalPages,
+    }
   },
 
   async get(id: string): Promise<Song> {

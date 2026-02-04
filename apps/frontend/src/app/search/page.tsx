@@ -14,7 +14,7 @@ export default function SearchPage() {
   useEffect(() => {
     const load = async () => {
       const list = await songApi.list()
-      const full = await Promise.all(list.map((item) => songApi.get(item.id)))
+      const full = await Promise.all(list.items.map((item) => songApi.get(item.id)))
       setSongs(full)
       setIsLoading(false)
     }

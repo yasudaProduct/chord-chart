@@ -23,7 +23,7 @@ export default function SongsPage() {
     const load = async () => {
       try {
         const data = await songApi.list()
-        setSongs(data)
+        setSongs(data.items)
       } catch (err) {
         setError(err instanceof Error ? err.message : '読み込みに失敗しました')
       } finally {

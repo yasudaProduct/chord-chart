@@ -6,8 +6,7 @@ info:
     ChordBook のバックエンド REST API 仕様（v1）。
 
     - 形式: JSON / UTF-8
-    - 認証: Supabase Auth の JWT を `Authorization: Bearer <token>` で送信
-    - 注意: 現時点のバックエンド実装では JWT 検証設定が未実装のため、本仕様の認証要件は「実装予定」です
+    - 認証: なし（現在のフロント実装に合わせる）
 servers:
   - url: http://localhost:5000
     description: 開発（ローカル）
@@ -24,7 +23,6 @@ paths:
       tags: [Health]
       summary: ヘルスチェック
       description: サーバー稼働状態を返します。
-      security: []
       responses:
         "200":
           description: OK
@@ -38,10 +36,8 @@ paths:
       tags: [Songs]
       summary: 楽曲一覧取得
       description: |
-        認証ユーザーが所有する楽曲を、更新日時の降順で返します。
+        登録されている楽曲を、更新日時の降順で返します。
         ページネーションを使用します。
-      security:
-        - bearerAuth: []
       parameters:
         - in: query
           name: page
@@ -81,14 +77,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SongListResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
     post:
       tags: [Songs]
       summary: 楽曲作成
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -109,8 +101,6 @@ paths:
                 $ref: "#/components/schemas/Song"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   /api/songs/{id}:
     get:
@@ -118,9 +108,7 @@ paths:
       summary: 楽曲詳細取得
       description: |
         指定した楽曲を取得します。
-        所有者、または公開設定により閲覧可能な場合に返します。
-      security:
-        - bearerAuth: []
+        MVPでは権限制御は行いません。
       parameters:
         - in: path
           name: id
@@ -135,19 +123,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Song"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
     put:
       tags: [Songs]
       summary: 楽曲更新
-      description: 所有者のみ更新可能です。
-      security:
-        - bearerAuth: []
+      description: MVPでは権限制御は行いません。
       parameters:
         - in: path
           name: id
@@ -166,19 +148,13 @@ paths:
           description: No Content
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
     delete:
       tags: [Songs]
       summary: 楽曲削除
-      description: 所有者のみ削除可能です。
-      security:
-        - bearerAuth: []
+      description: MVPでは権限制御は行いません。
       parameters:
         - in: path
           name: id
@@ -189,21 +165,10 @@ paths:
       responses:
         "204":
           description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Supabase Auth の Access Token（JWT）
-
   responses:
     BadRequest:
       description: Bad Request（バリデーションエラー等）
@@ -211,18 +176,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ValidationProblemDetails"
-    Unauthorized:
-      description: Unauthorized（認証エラー）
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ProblemDetails"
-    Forbidden:
-      description: Forbidden（権限なし）
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ProblemDetails"
     NotFound:
       description: Not Found（存在しない）
       content:
