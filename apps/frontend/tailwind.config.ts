@@ -13,14 +13,8 @@ const config: Config = {
         'primary-hover': '#4a5ab9',
       },
       fontFamily: {
-        sans: [
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Segoe UI',
-          'Hiragino Sans',
-          'Noto Sans JP',
-          'sans-serif',
-        ],
+        body: ['var(--font-body)', 'sans-serif'],
+        display: ['var(--font-display)', 'sans-serif'],
         mono: ['Monaco', 'Menlo', 'Consolas', 'monospace'],
       },
     },

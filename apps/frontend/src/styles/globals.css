@@ -8,11 +8,30 @@
   --background: #f7f7f7;
   --card-background: #ffffff;
   --border: #e0e0e0;
-  --text: #333333;
-  --text-sub: #888888;
+  --text: #1f2937;
+  --text-sub: #6b7280;
+  --accent: #f59e0b;
 }
 
 body {
   color: var(--text);
-  background: var(--background);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 45%),
+    radial-gradient(circle at 10% 20%, rgba(92, 107, 192, 0.18), transparent 50%),
+    #f8f7f4;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(92, 107, 192, 0.2);
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
 }
