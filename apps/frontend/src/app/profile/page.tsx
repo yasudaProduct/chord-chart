@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { SiteHeader } from '@/components/SiteHeader'
+import { SiteHeader } from '@/components/layout/SiteHeader'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function ProfilePage() {
