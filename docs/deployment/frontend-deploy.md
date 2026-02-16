@@ -28,8 +28,8 @@ Next.js フロントエンドを Vercel にデプロイする手順です。
 |------|-----|
 | Framework Preset | Next.js |
 | Root Directory | apps/frontend |
-| Build Command | pnpm build |
-| Install Command | pnpm install |
+| Build Command | npm run build |
+| Install Command | npm install |
 | Output Directory | .next |
 
 ### 4. 環境変数の設定
@@ -164,7 +164,7 @@ module.exports = {
 ```bash
 # ローカルでビルドを確認
 cd apps/frontend
-pnpm build
+npm run build
 ```
 
 よくある原因:

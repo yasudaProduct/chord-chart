@@ -7,7 +7,7 @@ ChordBook の開発環境を構築する手順を説明します。
 | ツール | バージョン | 用途 |
 |--------|-----------|------|
 | Node.js | 20以上 | フロントエンド実行環境 |
-| pnpm | 8以上 | パッケージマネージャー |
+| npm | 10以上 | パッケージマネージャー |
 | .NET SDK | 8.0 | バックエンド実行環境 |
 | Docker | 最新 | ローカルDB（オプション） |
 | Git | 最新 | バージョン管理 |
@@ -27,7 +27,7 @@ cd ChordChart-app-draft
 cd apps/frontend
 
 # 依存関係のインストール
-pnpm install
+npm install
 
 # 環境変数ファイルの作成
 cp .env.example .env.local
@@ -69,7 +69,7 @@ dotnet restore
 
 ```bash
 cd apps/frontend
-pnpm dev
+npm run dev
 ```
 
 http://localhost:3000 でアクセスできます。
@@ -98,13 +98,13 @@ dotnet run
 
 ```bash
 # 開発サーバー（ホットリロード有効）
-pnpm dev
+npm run dev
 
 # Lintチェック
-pnpm lint
+npm run lint
 
 # ビルド確認
-pnpm build
+npm run build
 ```
 
 #### バックエンド
@@ -119,15 +119,15 @@ dotnet test
 
 ## トラブルシューティング
 
-### pnpm install が失敗する
+### npm install が失敗する
 
 ```bash
-# pnpm のキャッシュをクリア
-pnpm store prune
+# npm のキャッシュをクリア
+npm cache clean --force
 
 # node_modules を削除して再インストール
 rm -rf node_modules
-pnpm install
+npm install
 ```
 
 ### dotnet restore が失敗する
@@ -142,7 +142,7 @@ dotnet restore
 
 ### ポートが使用中
 
-- フロントエンド: `PORT=3001 pnpm dev` で別ポートを指定
+- フロントエンド: `PORT=3001 npm run dev` で別ポートを指定
 - バックエンド: `launchSettings.json` でポートを変更
 
 ## 次のステップ

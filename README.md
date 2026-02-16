@@ -32,15 +32,15 @@ chord-book/
 ### 必要なツール
 
 - Node.js 20+
-- pnpm
+- npm
 - .NET 8 SDK
 
 ### フロントエンド
 
 ```bash
 cd apps/frontend
-pnpm install
-pnpm dev
+npm install
+npm run dev
 # http://localhost:3000
 ```
 
