@@ -1,27 +1,92 @@
 import { create } from 'zustand'
-import type { Song } from '@/types/song'
+import type { Section, Song } from '@/types/song'
+import {
+  parseSectionContent,
+  serializeSectionContent,
+  type SectionLine,
+} from '@/lib/sectionContent'
 
-interface EditorState {
-  song: Song | null
-  isPreviewVisible: boolean
-  isDirty: boolean
-  setSong: (song: Song) => void
-  updateSong: (updates: Partial<Song>) => void
-  togglePreview: () => void
-  setDirty: (dirty: boolean) => void
+export type ChordDialogState = {
+  sectionId: string
+  lineId: string
+  chordId?: string
+  offset: number
+  value: string
+  position: { x: number; y: number }
 }
 
-export const useEditorStore = create<EditorState>((set) => ({
+interface EditorState {
+  // データ
+  song: Song | null
+  // UI状態
+  isPreviewVisible: boolean
+  isDirty: boolean
+  isSaving: boolean
+  dialog: ChordDialogState | null
+  shareMessage: string
+  // アクション
+  setSong: (song: Song) => void
+  updateSong: (updater: (song: Song) => Song) => void
+  updateSection: (sectionId: string, updater: (section: Section) => Section) => void
+  updateSectionLines: (
+    sectionId: string,
+    updater: (lines: SectionLine[]) => SectionLine[]
+  ) => void
+  setDirty: (dirty: boolean) => void
+  setSaving: (saving: boolean) => void
+  setDialog: (dialog: ChordDialogState | null) => void
+  setShareMessage: (message: string) => void
+  togglePreview: () => void
+  reset: () => void
+}
+
+const initialState = {
   song: null,
   isPreviewVisible: true,
   isDirty: false,
+  isSaving: false,
+  dialog: null,
+  shareMessage: '',
+}
+
+export const useEditorStore = create<EditorState>((set, get) => ({
+  ...initialState,
+
   setSong: (song) => set({ song, isDirty: false }),
-  updateSong: (updates) =>
+
+  updateSong: (updater) =>
     set((state) => ({
-      song: state.song ? { ...state.song, ...updates } : null,
+      song: state.song ? updater(state.song) : null,
       isDirty: true,
     })),
+
+  updateSection: (sectionId, updater) => {
+    const { updateSong } = get()
+    updateSong((current) => ({
+      ...current,
+      sections: current.sections.map((section) =>
+        section.id === sectionId ? updater(section) : section
+      ),
+    }))
+  },
+
+  updateSectionLines: (sectionId, updater) => {
+    const { updateSection } = get()
+    updateSection(sectionId, (section) => {
+      const { lines } = parseSectionContent(section.content)
+      const nextLines = updater(lines)
+      return {
+        ...section,
+        content: serializeSectionContent(nextLines),
+      }
+    })
+  },
+
+  setDirty: (dirty) => set({ isDirty: dirty }),
+  setSaving: (saving) => set({ isSaving: saving }),
+  setDialog: (dialog) => set({ dialog }),
+  setShareMessage: (message) => set({ shareMessage: message }),
   togglePreview: () =>
     set((state) => ({ isPreviewVisible: !state.isPreviewVisible })),
-  setDirty: (dirty) => set({ isDirty: dirty }),
+  reset: () => set(initialState),
 }))

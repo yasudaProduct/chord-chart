@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { SiteHeader } from '@/components/SiteHeader'
+import { SiteHeader } from '@/components/layout/SiteHeader'
 import { songApi } from '@/lib/songApi'
 import { KEYS, TIME_SIGNATURES } from '@/lib/utils'
 
