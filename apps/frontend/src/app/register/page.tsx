@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { SiteHeader } from '@/components/SiteHeader'
+import { SiteHeader } from '@/components/layout/SiteHeader'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function RegisterPage() {

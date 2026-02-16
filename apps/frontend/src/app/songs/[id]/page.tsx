@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { SiteHeader } from '@/components/SiteHeader'
-import { SongPreview } from '@/components/SongPreview'
+import { SiteHeader } from '@/components/layout/SiteHeader'
+import { SongPreview } from '@/components/song/SongPreview'
 import { songApi } from '@/lib/songApi'
 import type { Song } from '@/types/song'
 

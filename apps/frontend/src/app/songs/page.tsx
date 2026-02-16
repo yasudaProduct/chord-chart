@@ -2,16 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { SiteHeader } from '@/components/SiteHeader'
+import { SiteHeader } from '@/components/layout/SiteHeader'
+import { SongCard } from '@/components/song/SongCard'
+import { SongSearchInput } from '@/components/song/SongSearchInput'
 import { songApi } from '@/lib/songApi'
 import type { SongListItem } from '@/types/song'
-
-const formatDate = (value: string) => {
-  const date = new Date(value)
-  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(
-    date.getDate()
-  ).padStart(2, '0')}`
-}
 
 export default function SongsPage() {
   const [songs, setSongs] = useState<SongListItem[]>([])
@@ -72,18 +67,11 @@ export default function SongsPage() {
           </Link>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <input
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="曲名・アーティスト・キーで検索"
-            className="w-full rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm outline-none transition focus:border-slate-400 md:w-80"
-          />
-          <span className="text-xs text-slate-500">
-            {filtered.length} 件ヒット
-          </span>
-        </div>
+        <SongSearchInput
+          query={query}
+          onChange={setQuery}
+          resultCount={filtered.length}
+        />
 
         <div className="mt-8 grid gap-4">
           {isLoading ? (
@@ -100,41 +88,7 @@ export default function SongsPage() {
             </div>
           ) : (
             filtered.map((song) => (
-              <div
-                key={song.id}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/60 bg-white/80 p-5 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.6)]"
-              >
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    {song.title}
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    {song.artist || 'アーティスト未設定'} · Key {song.key || '-'} · 更新{' '}
-                    {formatDate(song.updatedAt)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Link
-                    href={`/songs/${song.id}`}
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
-                  >
-                    詳細
-                  </Link>
-                  <Link
-                    href={`/editor/${song.id}`}
-                    className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white transition hover:bg-slate-800"
-                  >
-                    編集
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(song.id)}
-                    className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-400"
-                  >
-                    削除
-                  </button>
-                </div>
-              </div>
+              <SongCard key={song.id} song={song} onDelete={handleDelete} />
             ))
           )}
         </div>

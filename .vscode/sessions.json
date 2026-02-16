@@ -1,0 +1,45 @@
+{
+  "$schema": "https://cdn.statically.io/gh/nguyenngoclongdev/cdn/main/schema/v11/terminal-keeper.json",
+  "theme": "tribe",
+  "active": "default",
+  "activateOnStartup": true,
+  "keepExistingTerminals": false,
+  "sessions": {
+    "default": [
+      {
+        "name": "console",
+        "autoExecuteCommands": true,
+        "icon": "person",
+        "color": "terminal.ansiGreen",
+        "commands": [
+          ""
+        ]
+      },
+      [
+        {
+          "name": "frontend:dev",
+          "icon": "terminal",
+          "commands": [
+            "cd apps/frontend && npm run dev"
+          ]
+        },
+        {
+          "name": "backend:dev",
+          "icon": "terminal",
+          "commands": [
+            "cd apps/backend/src/ChordBook.Api && dotnet run"
+          ]
+        }
+      ],
+      [
+        {
+          "name": "docker:db",
+          "icon": "terminal",
+          "commands": [
+            ""
+          ]
+        }
+      ]
+    ]
+  }
+}
