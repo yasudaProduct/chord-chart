@@ -20,56 +20,15 @@ ChordBook REST API の概要と認証方式です。
 
 ---
 
+## OpenAPI（仕様の一次情報）
+
+API 仕様の一次情報は OpenAPI で管理します。
+
+- OpenAPI: `docs/api/openapi.yaml`
+
 ## 認証
 
-Supabase Auth を使用した JWT 認証を採用。
-
-### フロー
-
-```
-1. ユーザーが Supabase でログイン
-           │
-           ▼
-2. Supabase から Access Token（JWT）を取得
-           │
-           ▼
-3. API リクエスト時に Authorization ヘッダーに JWT を付与
-           │
-           ▼
-4. バックエンドが JWT を検証
-           │
-           ▼
-5. 認証成功: リクエスト処理 / 失敗: 401 エラー
-```
-
-### リクエスト例
-
-```http
-GET /api/songs HTTP/1.1
-Host: api.chordbook.example.com
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-Content-Type: application/json
-```
-
-### JWT の取得（フロントエンド）
-
-```typescript
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-// ログイン後にセッションから取得
-const { data: { session } } = await supabase.auth.getSession()
-const accessToken = session?.access_token
-```
-
-### 認証不要のエンドポイント
-
-| エンドポイント | 説明 |
-|---------------|------|
-| GET /api/health | ヘルスチェック |
-| GET /api/share/{token} | 共有リンクから楽曲取得 |
-| GET /api/songs/public | 公開楽曲の検索 |
+**MVP では認証なしで利用する前提です。**
 
 ---
 
@@ -79,7 +38,6 @@ const accessToken = session?.access_token
 
 | ヘッダー | 必須 | 説明 |
 |----------|------|------|
-| Authorization | 認証時 | `Bearer <token>` |
 | Content-Type | POST/PUT | `application/json` |
 
 ### クエリパラメータ
@@ -106,6 +64,30 @@ GET /api/songs?page=1&limit=20&sort=updatedAt&order=desc
 }
 ```
 
+### Content（コード譜データ）
+
+`Song.content` は JSON のセクション配列です（JSON 文字列ではありません）。
+
+例:
+
+```json
+[
+  {
+    "id": "section-1",
+    "name": "Aメロ",
+    "type": "lyrics-chord",
+    "lines": [
+      {
+        "lyrics": "きょうも いちにち",
+        "chords": [{ "chord": "C", "position": 0 }]
+      }
+    ]
+  }
+]
+```
+
+- `docs/database/tables.md`
+
 ---
 
 ## レスポンス
@@ -117,25 +99,28 @@ GET /api/songs?page=1&limit=20&sort=updatedAt&order=desc
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "title": "サンプル曲",
   "artist": "アーティスト",
+  "key": "C",
+  "bpm": 120,
+  "timeSignature": "4/4",
+  "content": [],
+  "visibility": 0,
   "createdAt": "2024-01-15T10:30:00Z",
   "updatedAt": "2024-01-15T10:30:00Z"
 }
 ```
 
-### 一覧レスポンス（ページネーション）
+### 一覧レスポンス
 
 ```json
 {
-  "data": [
+  "items": [
     { "id": "1", "title": "曲1" },
     { "id": "2", "title": "曲2" }
   ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 100,
-    "totalPages": 5
-  }
+  "total": 100,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 5
 }
 ```
 
@@ -161,17 +146,15 @@ GET /api/songs?page=1&limit=20&sort=updatedAt&order=desc
 
 | コード | 説明 | 用途 |
 |--------|------|------|
-| 200 | OK | GET成功、PUT成功 |
+| 200 | OK | GET成功 |
 | 201 | Created | POST成功（リソース作成） |
-| 204 | No Content | DELETE成功 |
+| 204 | No Content | PUT/DELETE成功 |
 
 ### クライアントエラー
 
 | コード | 説明 | 原因 |
 |--------|------|------|
 | 400 | Bad Request | リクエスト形式エラー、バリデーションエラー |
-| 401 | Unauthorized | 認証なし、トークン期限切れ |
-| 403 | Forbidden | 権限なし |
 | 404 | Not Found | リソースが存在しない |
 | 409 | Conflict | 競合（重複など） |
 | 422 | Unprocessable Entity | ビジネスルールエラー |
@@ -214,14 +197,7 @@ builder.Services.AddCors(options =>
 
 ## レート制限
 
-（将来実装予定）
-
-| エンドポイント | 制限 |
-|---------------|------|
-| 認証不要 | 100 req/分 |
-| 認証あり | 1000 req/分 |
-
-制限超過時は `429 Too Many Requests` を返却。
+（未実装）
 
 ---
 

@@ -1,0 +1,448 @@
+openapi: 3.0.3
+info:
+  title: ChordBook API
+  version: "1.0.0"
+  description: |
+    ChordBook のバックエンド REST API 仕様（v1）。
+
+    - 形式: JSON / UTF-8
+    - 認証: なし（現在のフロント実装に合わせる）
+servers:
+  - url: http://localhost:5000
+    description: 開発（ローカル）
+  - url: https://api.chordbook.example.com
+    description: 本番（例）
+tags:
+  - name: Health
+    description: ヘルスチェック
+  - name: Songs
+    description: 楽曲（コード譜）
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: ヘルスチェック
+      description: サーバー稼働状態を返します。
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/songs:
+    get:
+      tags: [Songs]
+      summary: 楽曲一覧取得
+      description: |
+        登録されている楽曲を、更新日時の降順で返します。
+        ページネーションを使用します。
+      parameters:
+        - in: query
+          name: page
+          description: ページ番号（1始まり）
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          description: 取得件数
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: sort
+          description: ソートキー
+          schema:
+            type: string
+            default: updatedAt
+            enum: [updatedAt, title]
+        - in: query
+          name: order
+          description: ソート順
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongListResponse"
+
+    post:
+      tags: [Songs]
+      summary: 楽曲作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSongRequest"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: 作成されたリソースのURL
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/songs/{id}:
+    get:
+      tags: [Songs]
+      summary: 楽曲詳細取得
+      description: |
+        指定した楽曲を取得します。
+        MVPでは権限制御は行いません。
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Songs]
+      summary: 楽曲更新
+      description: MVPでは権限制御は行いません。
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSongRequest"
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [Songs]
+      summary: 楽曲削除
+      description: MVPでは権限制御は行いません。
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  responses:
+    BadRequest:
+      description: Bad Request（バリデーションエラー等）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationProblemDetails"
+    NotFound:
+      description: Not Found（存在しない）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    Visibility:
+      type: integer
+      format: int32
+      description: |
+        公開設定:
+        - 0: Private（作成者のみ）
+        - 1: UrlOnly（URLを知っている人のみ）
+        - 2: SpecificUsers（特定ユーザーのみ）
+        - 3: Public（全員に公開）
+      enum: [0, 1, 2, 3]
+
+    ChordPosition:
+      type: object
+      required: [chord, position]
+      properties:
+        chord:
+          type: string
+          example: C
+        position:
+          type: integer
+          format: int32
+          minimum: 0
+          description: 歌詞文字列内の位置
+          example: 0
+
+    LyricsChordLine:
+      type: object
+      required: [lyrics, chords]
+      properties:
+        lyrics:
+          type: string
+          example: きょうも いちにち
+        chords:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChordPosition"
+
+    BarLine:
+      type: object
+      required: [bars]
+      properties:
+        bars:
+          type: array
+          items:
+            type: string
+          example: ["C", "G", "Am", "F"]
+
+    Section:
+      type: object
+      required: [id, name, type, lines]
+      properties:
+        id:
+          type: string
+          description: セクションID（クライアント側で生成可）
+          example: section-1
+        name:
+          type: string
+          example: イントロ
+        type:
+          type: string
+          enum: ["lyrics-chord", "bar"]
+          example: bar
+        lines:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/LyricsChordLine"
+              - $ref: "#/components/schemas/BarLine"
+
+    SongContent:
+      type: array
+      description: コード譜データ（セクション配列）
+      items:
+        $ref: "#/components/schemas/Section"
+
+    SongListItem:
+      type: object
+      required: [id, title, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        artist:
+          type: string
+          nullable: true
+          maxLength: 200
+        key:
+          type: string
+          nullable: true
+          maxLength: 10
+        updatedAt:
+          type: string
+          format: date-time
+
+    SongListResponse:
+      type: object
+      required: [items, total, page, pageSize, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SongListItem"
+        total:
+          type: integer
+          format: int32
+          minimum: 0
+        page:
+          type: integer
+          format: int32
+          minimum: 1
+        pageSize:
+          type: integer
+          format: int32
+          minimum: 1
+        totalPages:
+          type: integer
+          format: int32
+          minimum: 0
+
+    Song:
+      type: object
+      required:
+        - id
+        - title
+        - timeSignature
+        - content
+        - visibility
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        artist:
+          type: string
+          nullable: true
+          maxLength: 200
+        key:
+          type: string
+          nullable: true
+          maxLength: 10
+        bpm:
+          type: integer
+          format: int32
+          nullable: true
+          minimum: 1
+        timeSignature:
+          type: string
+          maxLength: 10
+          example: "4/4"
+        content:
+          $ref: "#/components/schemas/SongContent"
+        visibility:
+          $ref: "#/components/schemas/Visibility"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateSongRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        artist:
+          type: string
+          nullable: true
+          maxLength: 200
+        key:
+          type: string
+          nullable: true
+          maxLength: 10
+        bpm:
+          type: integer
+          format: int32
+          nullable: true
+          minimum: 1
+        timeSignature:
+          type: string
+          maxLength: 10
+          default: "4/4"
+
+    UpdateSongRequest:
+      type: object
+      required: [title, timeSignature, content]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        artist:
+          type: string
+          nullable: true
+          maxLength: 200
+        key:
+          type: string
+          nullable: true
+          maxLength: 10
+        bpm:
+          type: integer
+          format: int32
+          nullable: true
+          minimum: 1
+        timeSignature:
+          type: string
+          maxLength: 10
+        content:
+          $ref: "#/components/schemas/SongContent"
+
+    ProblemDetails:
+      type: object
+      description: ASP.NET Core 標準の Problem Details（RFC 7807）
+      properties:
+        type:
+          type: string
+          example: "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          example: 400
+        detail:
+          type: string
+          nullable: true
+        instance:
+          type: string
+          nullable: true
+
+    ValidationProblemDetails:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetails"
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string

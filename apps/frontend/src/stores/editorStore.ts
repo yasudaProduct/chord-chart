@@ -1,21 +1,5 @@
 import { create } from 'zustand'
-
-export interface Section {
-  id: string
-  name: string
-  type: 'lyrics-chord' | 'bar'
-  content: string
-}
-
-export interface Song {
-  id: string
-  title: string
-  artist: string
-  key: string
-  bpm: number
-  timeSignature: string
-  sections: Section[]
-}
+import type { Song } from '@/types/song'
 
 interface EditorState {
   song: Song | null

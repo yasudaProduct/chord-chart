@@ -1,4 +1,5 @@
 using ChordBook.Domain.Enums;
+using System.Text.Json;
 
 namespace ChordBook.Application.Songs.DTOs;
 
@@ -9,7 +10,7 @@ public record SongDto(
     string? Key,
     int? Bpm,
     string TimeSignature,
-    string Content,
+    JsonElement Content,
     Visibility Visibility,
     DateTime CreatedAt,
     DateTime UpdatedAt
@@ -28,7 +29,7 @@ public record CreateSongDto(
     string? Artist,
     string? Key,
     int? Bpm,
-    string TimeSignature
+    string TimeSignature = "4/4"
 );
 
 public record UpdateSongDto(
@@ -37,5 +38,5 @@ public record UpdateSongDto(
     string? Key,
     int? Bpm,
     string TimeSignature,
-    string Content
+    JsonElement Content
 );
