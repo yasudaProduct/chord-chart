@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__get_advisors",
+      "Bash(dotnet build:*)",
+      "Bash(pnpm build:*)",
+      "Bash(export PATH=\"$HOME/.nodebrew/current/bin:$PATH\")",
+      "Bash(npm ls:*)",
+      "Bash(npx pnpm:*)",
+      "Bash(corepack enable:*)",
+      "Bash(pnpm --version:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
