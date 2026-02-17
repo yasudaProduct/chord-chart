@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import { mockSongsApi } from '@/lib/mockSongs'
+import { useAuthStore } from '@/stores/authStore'
 import type { Section, Song, SongListItem, SongMeta, SongVisibility } from '@/types/song'
 
 type ApiSongDto = {
@@ -23,7 +24,9 @@ type ApiSongListItemDto = {
   updatedAt: string
 }
 
-const apiMode = process.env.NEXT_PUBLIC_API_MODE ?? 'mock'
+const isAuthenticated = (): boolean => {
+  return useAuthStore.getState().session !== null
+}
 
 const safeJsonParse = (value: string | null): { sections: Section[] } => {
   if (!value) return { sections: [] }
@@ -82,7 +85,7 @@ const toContent = (sections: Section[]) => JSON.stringify({ sections })
 
 export const songApi = {
   async list(): Promise<SongListItem[]> {
-    if (apiMode === 'mock') {
+    if (!isAuthenticated()) {
       return mockSongsApi.list()
     }
     const response = await api.get<ApiSongListItemDto[]>('/songs')
@@ -90,7 +93,7 @@ export const songApi = {
   },
 
   async get(id: string): Promise<Song> {
-    if (apiMode === 'mock') {
+    if (!isAuthenticated()) {
       return mockSongsApi.get(id)
     }
     const dto = await api.get<ApiSongDto>(`/songs/${id}`)
@@ -98,7 +101,7 @@ export const songApi = {
   },
 
   async create(meta: SongMeta, visibility?: SongVisibility): Promise<Song> {
-    if (apiMode === 'mock') {
+    if (!isAuthenticated()) {
       return mockSongsApi.create(meta, visibility)
     }
     const dto = await api.post<ApiSongDto>('/songs', {
@@ -112,7 +115,7 @@ export const songApi = {
   },
 
   async update(id: string, updates: Song): Promise<Song> {
-    if (apiMode === 'mock') {
+    if (!isAuthenticated()) {
       return mockSongsApi.update(id, updates)
     }
     const dto = await api.put<ApiSongDto>(`/songs/${id}`, {
@@ -127,7 +130,7 @@ export const songApi = {
   },
 
   async remove(id: string): Promise<void> {
-    if (apiMode === 'mock') {
+    if (!isAuthenticated()) {
       return mockSongsApi.remove(id)
     }
     await api.delete(`/songs/${id}`)

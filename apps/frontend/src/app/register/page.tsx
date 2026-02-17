@@ -8,16 +8,30 @@ import { useAuthStore } from '@/stores/authStore'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { setUser } = useAuthStore()
+  const { signUp } = useAuthStore()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!email.trim() || password !== confirm) return
-    setUser({ id: email, email, name: name || undefined })
+    if (!email.trim()) return
+    if (password !== confirm) {
+      setError('パスワードが一致しません。')
+      return
+    }
+    setIsSubmitting(true)
+    setError(null)
+
+    const result = await signUp(email, password, name || undefined)
+    if (result.error) {
+      setError(result.error)
+      setIsSubmitting(false)
+      return
+    }
     router.push('/songs')
   }
 
@@ -30,8 +44,13 @@ export default function RegisterPage() {
             新規登録
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            MVP版ではローカルに保存し、すぐに試せます。
+            アカウントを作成して楽曲を保存しましょう。
           </p>
+          {error && (
+            <p className="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">
+              {error}
+            </p>
+          )}
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <label className="block text-sm text-slate-600">
               表示名
@@ -78,9 +97,10 @@ export default function RegisterPage() {
             </label>
             <button
               type="submit"
-              className="w-full rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              disabled={isSubmitting}
+              className="w-full rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
-              アカウント作成
+              {isSubmitting ? '作成中...' : 'アカウント作成'}
             </button>
           </form>
           <div className="mt-4 text-center text-xs text-slate-500">
