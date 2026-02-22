@@ -21,7 +21,8 @@ const safeParse = <T>(value: string | null, fallback: T): T => {
   }
 }
 
-const parseBarContent = (content: string) => {
+const parseBarContent = (content: string | undefined) => {
+  if (!content) return serializeSectionContent([])
   const bars = content
     .split('|')
     .map((item) => item.trim())
