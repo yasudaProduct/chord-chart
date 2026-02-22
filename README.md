@@ -45,39 +45,8 @@ git clone https://github.com/yasudaProduct/chord-chart.git
 cd chord-chart
 ```
 
-### 2. Supabaseの準備
 
-Supabaseダッシュボードでプロジェクトを作成し、以下の情報を取得してください。
-
-| 情報 | 取得場所 |
-|------|----------|
-| Project URL | Settings > API > Project URL |
-| Anon Key | Settings > API > Project API keys |
-| JWT Secret | Settings > API > JWT Settings |
-| DB接続文字列 | Settings > Database > Connection string (URI) |
-
-#### データベースのセットアップ
-
-Supabase SQL Editor（ダッシュボード > SQL Editor）で、以下のマイグレーションファイルを **順番に** 実行してください。
-
-1. `supabase/migrations/20260217141809_create_initial_tables.sql` — テーブル作成
-2. `supabase/migrations/20260217142711_enable_rls_policies.sql` — RLSポリシー設定
-3. `supabase/migrations/20260221083155_create_auth_user_sync_trigger.sql` — Auth連携トリガー
-
-Supabase CLIを使用する場合は、以下のコマンドで一括適用できます。
-
-```bash
-# Supabase CLIのインストール（未インストールの場合）
-brew install supabase/tap/supabase
-
-# プロジェクトにリンク
-supabase link --project-ref <your-project-ref>
-
-# マイグレーションを適用
-supabase db push
-```
-
-### 3. フロントエンドのセットアップ
+### 2. フロントエンドのセットアップ
 
 ```bash
 cd apps/frontend
@@ -96,7 +65,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
-### 4. バックエンドのセットアップ
+### 3. バックエンドのセットアップ
 
 `apps/backend/src/ChordBook.Api/appsettings.Development.json` を作成します。
 
@@ -119,7 +88,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 }
 ```
 
-### 5. 開発サーバーの起動
+### 4. 開発サーバーの起動
 
 バックエンドとフロントエンドをそれぞれ別のターミナルで起動します。
 
@@ -137,6 +106,73 @@ cd apps/frontend
 pnpm dev
 # http://localhost:3000
 ```
+
+### 5.Supabase ローカル開発フロー
+
+#### 前提
+
+- Docker Desktop がインストール・起動していること
+- Supabase プロジェクトが作成済みであること（[supabase.com](https://supabase.com)）
+
+#### 初回セットアップ
+
+```bash
+# 1. Supabase にログイン
+supabase login
+
+# 2. リモートプロジェクトとリンク
+supabase link --project-ref <your-project-ref>
+
+# 3. ローカル環境を起動（supabase/migrations/ 内の migration が自動適用される）
+supabase start
+
+# 4. ローカル環境の接続情報を確認
+supabase status
+```
+
+#### リモートスキーマの再取得（リモート DB を直接変更した場合）
+
+> **注意:** `supabase db pull`（リンク経由）は、Docker Desktop（macOS）の IPv6 制限により
+> diff ステップで `ECONNREFUSED` エラーが発生します。
+> Supabase の IPv4 Add-on（有料）を使わずに回避するため、`--db-url` で Supavisor pooler 経由の接続文字列を指定しています。
+
+```bash
+# 1. リモートスキーマを migration ファイルとして取得（pooler 経由）
+supabase db pull --db-url postgresql://postgres.axoatetngoxlolocwboz:<password>@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres
+
+# 2. ローカル DB をリセットして migration を再適用
+supabase db reset
+```
+
+#### 日常の開発フロー
+
+```bash
+# 1. ローカル環境を起動
+supabase start
+
+# 2. ローカルでスキーマを変更（Studio http://localhost:54323 or SQL）
+
+# 3. 変更を migration ファイルに書き出し
+supabase db diff -f <migration_name>
+
+# 4. Git にコミット
+git add supabase/migrations/
+git commit -m "feat: add xxx table"
+
+# 5. デプロイ時にリモートへ migration を適用
+supabase db push
+```
+
+#### ローカル環境の操作
+
+```bash
+supabase start              # 起動
+supabase stop               # 停止（データ保持）
+supabase stop --no-backup   # 停止（データ削除）
+supabase db reset           # ローカル DB をリセット（migration 再適用）
+supabase status             # ローカル環境の接続情報を表示
+```
+
 
 ### デモモード
 
