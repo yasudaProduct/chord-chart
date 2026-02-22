@@ -67,26 +67,15 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ### 3. バックエンドのセットアップ
 
-`apps/backend/src/ChordBook.Api/appsettings.Development.json` を作成します。
+`appsettings.Development.json.example` をコピーして `appsettings.Development.json` を作成します。
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "Microsoft.EntityFrameworkCore": "Information"
-    }
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=db.<your-project>.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=<your-db-password>;SSL Mode=Require;Trust Server Certificate=true"
-  },
-  "Supabase": {
-    "Url": "https://<your-project>.supabase.co",
-    "JwtSecret": "<your-jwt-secret>"
-  }
-}
+```bash
+cd apps/backend/src/ChordBook.Api
+cp appsettings.Development.json.example appsettings.Development.json
 ```
+
+`JwtSecret` には `supabase status` で表示される **Authentication Keys > Secret** の値を設定してください。
+その他の値はローカル Supabase のデフォルト値が設定済みです。
 
 ### 4. 開発サーバーの起動
 
