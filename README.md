@@ -138,7 +138,7 @@ supabase status
 
 ```bash
 # 1. リモートスキーマを migration ファイルとして取得（pooler 経由）
-supabase db pull --db-url postgresql://postgres.axoatetngoxlolocwboz:<password>@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres
+supabase db pull --db-url postgresql://postgres.<your-project-ref>:<password>@<pooler-host>:6543/postgres
 
 # 2. ローカル DB をリセットして migration を再適用
 supabase db reset
