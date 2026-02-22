@@ -1,5 +1,4 @@
 using System.Text;
-using ChordBook.Api.Middleware;
 using ChordBook.Api.Services;
 using ChordBook.Application;
 using ChordBook.Application.Common.Interfaces;
@@ -65,7 +64,6 @@ app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<EnsureUserMiddleware>();
 app.MapControllers();
 
 app.Run();

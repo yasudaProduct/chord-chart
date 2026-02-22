@@ -23,6 +23,8 @@ chord-book/
 ├── apps/
 │   ├── frontend/      # Next.js フロントエンド
 │   └── backend/       # ASP.NET Core バックエンド
+├── supabase/
+│   └── migrations/    # DBマイグレーション（テーブル・RLS・トリガー）
 ├── docs/              # ドキュメント
 └── .github/           # GitHub Actions
 ```
@@ -45,7 +47,7 @@ cd chord-chart
 
 ### 2. Supabaseの準備
 
-Supabaseダッシュボードから以下の情報を取得してください。
+Supabaseダッシュボードでプロジェクトを作成し、以下の情報を取得してください。
 
 | 情報 | 取得場所 |
 |------|----------|
@@ -53,6 +55,27 @@ Supabaseダッシュボードから以下の情報を取得してください。
 | Anon Key | Settings > API > Project API keys |
 | JWT Secret | Settings > API > JWT Settings |
 | DB接続文字列 | Settings > Database > Connection string (URI) |
+
+#### データベースのセットアップ
+
+Supabase SQL Editor（ダッシュボード > SQL Editor）で、以下のマイグレーションファイルを **順番に** 実行してください。
+
+1. `supabase/migrations/20260217141809_create_initial_tables.sql` — テーブル作成
+2. `supabase/migrations/20260217142711_enable_rls_policies.sql` — RLSポリシー設定
+3. `supabase/migrations/20260221083155_create_auth_user_sync_trigger.sql` — Auth連携トリガー
+
+Supabase CLIを使用する場合は、以下のコマンドで一括適用できます。
+
+```bash
+# Supabase CLIのインストール（未インストールの場合）
+brew install supabase/tap/supabase
+
+# プロジェクトにリンク
+supabase link --project-ref <your-project-ref>
+
+# マイグレーションを適用
+supabase db push
+```
 
 ### 3. フロントエンドのセットアップ
 
