@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useEditorActions } from './useEditorActions'
 
 type DragChordState = {
@@ -14,51 +14,46 @@ const clamp = (value: number, min = 0, max = 1) =>
   Math.min(max, Math.max(min, value))
 
 export const useChordDrag = () => {
-  const [draggingChord, setDraggingChord] = useState<DragChordState | null>(
-    null
-  )
-  const { updateChordOffset, findLine, openDialog } = useEditorActions()
+  const dragRef = useRef<DragChordState | null>(null)
+  const actionsRef = useRef<ReturnType<typeof useEditorActions>>(null!)
+  actionsRef.current = useEditorActions()
 
   useEffect(() => {
-    if (!draggingChord) return
-
     const handleMove = (event: PointerEvent) => {
-      setDraggingChord((prev) => {
-        if (!prev) return prev
-        const offset = clamp(
-          (event.clientX - prev.rect.left) / prev.rect.width
-        )
-        updateChordOffset(prev.sectionId, prev.lineId, prev.chordId, offset)
-        return {
-          ...prev,
-          moved: prev.moved || Math.abs(event.clientX - prev.startX) > 3,
-        }
-      })
+      const drag = dragRef.current
+      if (!drag) return
+      const offset = clamp(
+        (event.clientX - drag.rect.left) / drag.rect.width
+      )
+      actionsRef.current.updateChordOffset(
+        drag.sectionId, drag.lineId, drag.chordId, offset
+      )
+      drag.moved = drag.moved || Math.abs(event.clientX - drag.startX) > 3
     }
 
     const handleUp = () => {
-      setDraggingChord((prev) => {
-        if (prev && !prev.moved) {
-          const targetLine = findLine(prev.sectionId, prev.lineId)
-          const chord = targetLine?.chords.find(
-            (item) => item.id === prev.chordId
-          )
-          if (chord) {
-            openDialog({
-              sectionId: prev.sectionId,
-              lineId: prev.lineId,
-              chordId: chord.id,
-              offset: chord.offset,
-              value: chord.chord,
-              position: {
-                x: prev.rect.left + prev.rect.width * chord.offset,
-                y: prev.rect.top,
-              },
-            })
-          }
+      const drag = dragRef.current
+      if (!drag) return
+      if (!drag.moved) {
+        const targetLine = actionsRef.current.findLine(drag.sectionId, drag.lineId)
+        const chord = targetLine?.chords.find(
+          (item) => item.id === drag.chordId
+        )
+        if (chord) {
+          actionsRef.current.openDialog({
+            sectionId: drag.sectionId,
+            lineId: drag.lineId,
+            chordId: chord.id,
+            offset: chord.offset,
+            value: chord.chord,
+            position: {
+              x: drag.rect.left + drag.rect.width * chord.offset,
+              y: drag.rect.top,
+            },
+          })
         }
-        return null
-      })
+      }
+      dragRef.current = null
     }
 
     window.addEventListener('pointermove', handleMove)
@@ -68,11 +63,11 @@ export const useChordDrag = () => {
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
     }
-  }, [draggingChord, updateChordOffset, findLine, openDialog])
+  }, [])
 
-  const startChordDrag = (state: DragChordState) => {
-    setDraggingChord(state)
-  }
+  const startChordDrag = useCallback((state: DragChordState) => {
+    dragRef.current = state
+  }, [])
 
-  return { draggingChord, startChordDrag }
+  return { startChordDrag }
 }

@@ -166,6 +166,22 @@ export const mockSongsApi = {
       .map(toListItem)
   },
 
+  async search(query?: string): Promise<SongListItem[]> {
+    const songs = readSongs()
+    const items = songs
+      .filter((s) => s.visibility === 'public')
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map(toListItem)
+    if (!query?.trim()) return items
+    const lower = query.toLowerCase()
+    return items.filter(
+      (s) =>
+        s.title.toLowerCase().includes(lower) ||
+        (s.artist ?? '').toLowerCase().includes(lower) ||
+        (s.key ?? '').toLowerCase().includes(lower)
+    )
+  },
+
   async get(id: string): Promise<Song> {
     const songs = readSongs()
     const song = songs.find((item) => item.id === id)

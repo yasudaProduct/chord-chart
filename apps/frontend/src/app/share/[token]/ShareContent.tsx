@@ -1,35 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { SongPreview } from '@/components/song/SongPreview'
-import { songApi } from '@/lib/songApi'
-import type { Song } from '@/types/song'
+import { useSong } from '@/hooks/useSong'
 
 type ShareContentProps = {
   token: string
 }
 
 export const ShareContent = ({ token }: ShareContentProps) => {
-  const [song, setSong] = useState<Song | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await songApi.get(token)
-        setSong(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '読み込みに失敗しました')
-      }
-    }
-    load()
-  }, [token])
+  const { song, error, isLoading } = useSong(token)
 
   if (error) {
-    return <div className="mt-6 text-sm text-red-600">{error}</div>
+    return <div className="mt-6 text-sm text-red-600">
+      {error instanceof Error ? error.message : '読み込みに失敗しました'}
+    </div>
   }
 
-  if (!song) {
+  if (isLoading || !song) {
     return <div className="mt-6 text-sm text-slate-500">読み込み中...</div>
   }
 

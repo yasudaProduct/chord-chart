@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { parseSectionContent } from '@/lib/sectionContent'
 import type { Song } from '@/types/song'
 
@@ -7,6 +8,11 @@ type SongPreviewProps = {
 }
 
 export const SongPreview = ({ song, className }: SongPreviewProps) => {
+  const parsedSections = useMemo(
+    () => song.sections.map((s) => ({ ...s, parsed: parseSectionContent(s.content) })),
+    [song.sections]
+  )
+
   if (song.sections.length === 0) {
     return (
       <div
@@ -22,8 +28,8 @@ export const SongPreview = ({ song, className }: SongPreviewProps) => {
   return (
     <div className={className}>
       <div className="space-y-4">
-        {song.sections.map((section) => {
-          const content = parseSectionContent(section.content)
+        {parsedSections.map((section) => {
+          const content = section.parsed
           return (
             <div
               key={section.id}
