@@ -1,44 +1,47 @@
-'use client'
+"use client";
 
-import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { SiteHeader } from '@/components/layout/SiteHeader'
-import { songApi } from '@/lib/songApi'
-import type { Song } from '@/types/song'
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { songApi } from "@/lib/songApi";
+import type { Song } from "@/types/song";
 
 export default function SearchPage() {
-  const [songs, setSongs] = useState<Song[]>([])
-  const [query, setQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [query, setQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const list = await songApi.list()
-      const full = await Promise.all(list.map((item) => songApi.get(item.id)))
-      setSongs(full)
-      setIsLoading(false)
-    }
-    load()
-  }, [])
+      // TODO: バックエンド側で検索エンドポイントを用意し、１回のリクエストで完結させる
+      const list = await songApi.list();
+      const full = await Promise.all(list.map((item) => songApi.get(item.id)));
+      setSongs(full);
+      setIsLoading(false);
+    };
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
-    const lowered = query.toLowerCase()
+    const lowered = query.toLowerCase();
     return songs.filter((song) => {
-      if (!lowered) return true
+      if (!lowered) return true;
       return (
         song.title.toLowerCase().includes(lowered) ||
-        (song.artist ?? '').toLowerCase().includes(lowered) ||
-        (song.key ?? '').toLowerCase().includes(lowered)
-      )
-    })
-  }, [songs, query])
+        (song.artist ?? "").toLowerCase().includes(lowered) ||
+        (song.key ?? "").toLowerCase().includes(lowered)
+      );
+    });
+  }, [songs, query]);
 
   return (
     <main className="min-h-screen">
       <SiteHeader variant="app" />
       <section className="mx-auto w-full max-w-5xl px-6 py-10">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-slate-900">検索</h1>
+          <h1 className="font-display text-2xl font-semibold text-slate-900">
+            検索
+          </h1>
           <p className="text-sm text-slate-500">
             公開楽曲の検索画面（MVPでは全件から検索できます）。
           </p>
@@ -75,7 +78,8 @@ export default function SearchPage() {
                       {song.title}
                     </h2>
                     <p className="text-sm text-slate-500">
-                      {song.artist || 'アーティスト未設定'} · Key {song.key || '-'}
+                      {song.artist || "アーティスト未設定"} · Key{" "}
+                      {song.key || "-"}
                     </p>
                   </div>
                   <Link
@@ -91,5 +95,5 @@ export default function SearchPage() {
         </div>
       </section>
     </main>
-  )
+  );
 }
