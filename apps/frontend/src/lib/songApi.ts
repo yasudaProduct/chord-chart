@@ -129,6 +129,15 @@ export const songApi = {
     return toSong(dto)
   },
 
+  async search(query?: string): Promise<SongListItem[]> {
+    if (!isAuthenticated()) {
+      return mockSongsApi.search(query)
+    }
+    const params = query ? `?q=${encodeURIComponent(query)}` : ''
+    const response = await api.get<ApiSongListItemDto[]>(`/songs/search${params}`)
+    return response.map(toSongListItem)
+  },
+
   async remove(id: string): Promise<void> {
     if (!isAuthenticated()) {
       return mockSongsApi.remove(id)

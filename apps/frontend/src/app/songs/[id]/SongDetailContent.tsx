@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { SongPreview } from '@/components/song/SongPreview'
-import { songApi } from '@/lib/songApi'
-import type { Song } from '@/types/song'
+import { useSong } from '@/hooks/useSong'
 
 type SongDetailContentProps = {
   id: string
@@ -13,30 +11,17 @@ type SongDetailContentProps = {
 
 export const SongDetailContent = ({ id }: SongDetailContentProps) => {
   const router = useRouter()
-  const [song, setSong] = useState<Song | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await songApi.get(id)
-        setSong(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '読み込みに失敗しました')
-      }
-    }
-    load()
-  }, [id])
+  const { song, error, isLoading } = useSong(id)
 
   if (error) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-16 text-sm text-red-600">
-        {error}
+        {error instanceof Error ? error.message : '読み込みに失敗しました'}
       </div>
     )
   }
 
-  if (!song) {
+  if (isLoading || !song) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-16 text-sm text-slate-500">
         読み込み中...

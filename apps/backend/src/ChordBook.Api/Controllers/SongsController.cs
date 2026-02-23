@@ -5,6 +5,7 @@ using ChordBook.Application.Songs.Commands.UpdateSong;
 using ChordBook.Application.Songs.DTOs;
 using ChordBook.Application.Songs.Queries.GetSongById;
 using ChordBook.Application.Songs.Queries.GetSongs;
+using ChordBook.Application.Songs.Queries.SearchSongs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,15 @@ public class SongsController : ControllerBase
         if (_currentUser.UserId is null) return Unauthorized();
         var result = await _mediator.Send(
             new GetSongsQuery(_currentUser.UserId.Value));
+        return Ok(result);
+    }
+
+    [HttpGet("search")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<SongListItemDto>>> SearchSongs(
+        [FromQuery] string? q)
+    {
+        var result = await _mediator.Send(new SearchSongsQuery(q));
         return Ok(result);
     }
 
