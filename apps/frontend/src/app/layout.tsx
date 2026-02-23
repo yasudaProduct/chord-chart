@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Noto_Sans_JP, Space_Grotesk } from 'next/font/google'
+import { AuthProvider } from '@/components/providers/AuthProvider'
 import '@/styles/globals.css'
 
 const bodyFont = Noto_Sans_JP({
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${bodyFont.variable} ${displayFont.variable} font-body`}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )

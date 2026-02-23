@@ -23,6 +23,16 @@ public class User : BaseEntity
         };
     }
 
+    public static User CreateWithId(Guid id, string email, string? displayName = null)
+    {
+        return new User
+        {
+            Id = id,
+            Email = email,
+            DisplayName = displayName
+        };
+    }
+
     public void UpdateProfile(string? displayName, string? avatarUrl)
     {
         DisplayName = displayName;

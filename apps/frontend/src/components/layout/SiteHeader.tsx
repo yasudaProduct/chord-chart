@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -20,11 +19,7 @@ const navItems = [
 
 export const SiteHeader = ({ variant = 'public' }: SiteHeaderProps) => {
   const pathname = usePathname()
-  const { user, hydrate, logout } = useAuthStore()
-
-  useEffect(() => {
-    hydrate()
-  }, [hydrate])
+  const { user, logout } = useAuthStore()
 
   return (
     <header className="print-hidden sticky top-0 z-40 border-b border-white/60 bg-white/80 backdrop-blur">
@@ -70,7 +65,7 @@ export const SiteHeader = ({ variant = 'public' }: SiteHeaderProps) => {
                   </span>
                   <button
                     type="button"
-                    onClick={logout}
+                    onClick={() => void logout()}
                     className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
                   >
                     ログアウト
