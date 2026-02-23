@@ -1,5 +1,3 @@
-'use client'
-
 import { parseSectionContent } from '@/lib/sectionContent'
 import type { Song } from '@/types/song'
 

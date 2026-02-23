@@ -1,29 +1,19 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { SiteHeader } from '@/components/layout/SiteHeader'
-import { SongPreview } from '@/components/song/SongPreview'
-import { songApi } from '@/lib/songApi'
-import type { Song } from '@/types/song'
+import { ShareContent } from './ShareContent'
 
-export default function SharePage() {
-  const params = useParams<{ token: string }>()
-  const [song, setSong] = useState<Song | null>(null)
-  const [error, setError] = useState<string | null>(null)
+export const metadata: Metadata = {
+  title: '共有コード譜 | ChordBook',
+  description: '共有されたコード譜を閲覧できます。',
+}
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await songApi.get(params.token)
-        setSong(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '読み込みに失敗しました')
-      }
-    }
-    load()
-  }, [params.token])
+type SharePageProps = {
+  params: Promise<{ token: string }>
+}
+
+export default async function SharePage({ params }: SharePageProps) {
+  const { token } = await params
 
   return (
     <main className="min-h-screen">
@@ -47,23 +37,7 @@ export default function SharePage() {
             </Link>
           </div>
 
-          {error ? (
-            <div className="mt-6 text-sm text-red-600">{error}</div>
-          ) : !song ? (
-            <div className="mt-6 text-sm text-slate-500">読み込み中...</div>
-          ) : (
-            <div className="mt-6">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {song.title}
-                </h2>
-                <p className="text-sm text-slate-500">
-                  {song.artist || 'アーティスト未設定'} · Key {song.key || '-'}
-                </p>
-              </div>
-              <SongPreview song={song} />
-            </div>
-          )}
+          <ShareContent token={token} />
         </div>
       </section>
     </main>

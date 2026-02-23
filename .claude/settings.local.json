@@ -12,7 +12,8 @@
       "Bash(npm ls:*)",
       "Bash(npx pnpm:*)",
       "Bash(corepack enable:*)",
-      "Bash(pnpm --version:*)"
+      "Bash(pnpm --version:*)",
+      "Bash(pnpm lint 2>&1)"
     ]
   },
   "enableAllProjectMcpServers": true,
