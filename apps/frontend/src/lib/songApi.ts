@@ -85,17 +85,11 @@ const toContent = (sections: Section[]) => JSON.stringify({ sections })
 
 export const songApi = {
   async list(): Promise<SongListItem[]> {
-    if (!isAuthenticated()) {
-      return mockSongsApi.list()
-    }
     const response = await api.get<ApiSongListItemDto[]>('/songs')
     return response.map(toSongListItem)
   },
 
   async get(id: string): Promise<Song> {
-    if (!isAuthenticated()) {
-      return mockSongsApi.get(id)
-    }
     const dto = await api.get<ApiSongDto>(`/songs/${id}`)
     return toSong(dto)
   },
@@ -130,9 +124,6 @@ export const songApi = {
   },
 
   async search(query?: string): Promise<SongListItem[]> {
-    if (!isAuthenticated()) {
-      return mockSongsApi.search(query)
-    }
     const params = query ? `?q=${encodeURIComponent(query)}` : ''
     const response = await api.get<ApiSongListItemDto[]>(`/songs/search${params}`)
     return response.map(toSongListItem)
