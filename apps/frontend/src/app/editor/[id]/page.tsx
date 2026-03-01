@@ -1,37 +1,45 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { songApi } from "@/lib/songApi";
-import { useEditorStore } from "@/stores/editorStore";
-import { useEditorActions } from "@/hooks/useEditorActions";
-import { useChordDrag } from "@/hooks/useChordDrag";
-import { useSectionDrag } from "@/hooks/useSectionDrag";
-import { EditorHeader } from "@/components/editor/EditorHeader";
-import { MetadataPanel } from "@/components/editor/MetadataPanel";
-import { SectionEditor } from "@/components/editor/SectionEditor";
-import { SectionAddButtons } from "@/components/editor/SectionAddButtons";
-import { PreviewPanel } from "@/components/editor/PreviewPanel";
-import { ChordDialog } from "@/components/editor/ChordDialog";
-import { Toast } from "@/components/ui/Toast";
-import type { ChordBlock } from "@/lib/sectionContent";
+import { useEffect } from 'react'
+import dynamic from 'next/dynamic'
+import { useParams, useRouter } from 'next/navigation'
+import useSWR from 'swr'
+import { cn } from '@/lib/utils'
+import { songApi } from '@/lib/songApi'
+import { useEditorStore } from '@/stores/editorStore'
+import { useEditorActions } from '@/hooks/useEditorActions'
+import { useChordDrag } from '@/hooks/useChordDrag'
+import { useSectionDrag } from '@/hooks/useSectionDrag'
+import { EditorHeader } from '@/components/editor/EditorHeader'
+import { MetadataPanel } from '@/components/editor/MetadataPanel'
+import { SectionEditor } from '@/components/editor/SectionEditor'
+import { SectionAddButtons } from '@/components/editor/SectionAddButtons'
+import { Toast } from '@/components/ui/Toast'
+import type { ChordBlock } from '@/lib/sectionContent'
+
+const PreviewPanel = dynamic(
+  () => import('@/components/editor/PreviewPanel').then(mod => ({ default: mod.PreviewPanel })),
+  { ssr: false }
+)
+
+const ChordDialog = dynamic(
+  () => import('@/components/editor/ChordDialog').then(mod => ({ default: mod.ChordDialog })),
+  { ssr: false }
+)
 
 export default function EditorPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
-  const {
-    song,
-    isPreviewVisible,
-    isDirty,
-    isSaving,
-    dialog,
-    shareMessage,
-    setSong,
-    setDialog,
-    togglePreview,
-  } = useEditorStore();
+  const song = useEditorStore((s) => s.song)
+  const isPreviewVisible = useEditorStore((s) => s.isPreviewVisible)
+  const isDirty = useEditorStore((s) => s.isDirty)
+  const isSaving = useEditorStore((s) => s.isSaving)
+  const dialog = useEditorStore((s) => s.dialog)
+  const shareMessage = useEditorStore((s) => s.shareMessage)
+  const setSong = useEditorStore((s) => s.setSong)
+  const setDialog = useEditorStore((s) => s.setDialog)
+  const togglePreview = useEditorStore((s) => s.togglePreview)
 
   const {
     handleMetaChange,
@@ -57,21 +65,21 @@ export default function EditorPage() {
     handleSectionDragEnd,
   } = useSectionDrag();
 
-  const isLoading = song === null && !shareMessage;
+  const { isLoading: isFetching } = useSWR(
+    `songs/${params.id}`,
+    () => songApi.get(params.id),
+    { onSuccess: setSong }
+  )
+
+  const isLoading = song === null && isFetching
 
   useEffect(() => {
-    const load = async () => {
-      const data = await songApi.get(params.id);
-      setSong(data);
-    };
-    load();
-
     return () => {
-      useEditorStore.getState().reset();
-    };
-  }, [params.id, setSong]);
+      useEditorStore.getState().reset()
+    }
+  }, [params.id])
 
-  const hasSections = useMemo(() => (song?.sections.length ?? 0) > 0, [song]);
+  const hasSections = (song?.sections.length ?? 0) > 0
 
   const handleChordPointerDown = (
     event: React.PointerEvent<HTMLButtonElement>,

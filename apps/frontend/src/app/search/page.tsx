@@ -1,44 +1,33 @@
-'use client'
+"use client";
 
-import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { SiteHeader } from '@/components/layout/SiteHeader'
-import { songApi } from '@/lib/songApi'
-import type { Song } from '@/types/song'
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { useSongSearch } from "@/hooks/useSong";
 
 export default function SearchPage() {
-  const [songs, setSongs] = useState<Song[]>([])
-  const [query, setQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      const list = await songApi.list()
-      const full = await Promise.all(list.items.map((item) => songApi.get(item.id)))
-      setSongs(full)
-      setIsLoading(false)
-    }
-    load()
-  }, [])
+  const { results, isLoading } = useSongSearch(debouncedQuery);
 
-  const filtered = useMemo(() => {
-    const lowered = query.toLowerCase()
-    return songs.filter((song) => {
-      if (!lowered) return true
-      return (
-        song.title.toLowerCase().includes(lowered) ||
-        (song.artist ?? '').toLowerCase().includes(lowered) ||
-        (song.key ?? '').toLowerCase().includes(lowered)
-      )
-    })
-  }, [songs, query])
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setDebouncedQuery(value);
+    }, 300);
+  };
 
   return (
     <main className="min-h-screen">
       <SiteHeader variant="app" />
       <section className="mx-auto w-full max-w-5xl px-6 py-10">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-slate-900">検索</h1>
+          <h1 className="font-display text-2xl font-semibold text-slate-900">
+            検索
+          </h1>
           <p className="text-sm text-slate-500">
             公開楽曲の検索画面（MVPでは全件から検索できます）。
           </p>
@@ -48,7 +37,7 @@ export default function SearchPage() {
           <input
             type="text"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => handleQueryChange(event.target.value)}
             placeholder="曲名・アーティスト・キーで検索"
             className="w-full rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm outline-none transition focus:border-slate-400"
           />
@@ -59,12 +48,12 @@ export default function SearchPage() {
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-8 text-center text-sm text-slate-500">
               読み込み中...
             </div>
-          ) : filtered.length === 0 ? (
+          ) : results.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-8 text-center text-sm text-slate-500">
               検索結果がありません。
             </div>
           ) : (
-            filtered.map((song) => (
+            results.map((song) => (
               <div
                 key={song.id}
                 className="rounded-2xl border border-white/60 bg-white/80 p-5 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.6)]"
@@ -75,7 +64,8 @@ export default function SearchPage() {
                       {song.title}
                     </h2>
                     <p className="text-sm text-slate-500">
-                      {song.artist || 'アーティスト未設定'} · Key {song.key || '-'}
+                      {song.artist || "アーティスト未設定"} · Key{" "}
+                      {song.key || "-"}
                     </p>
                   </div>
                   <Link
@@ -91,5 +81,5 @@ export default function SearchPage() {
         </div>
       </section>
     </main>
-  )
+  );
 }

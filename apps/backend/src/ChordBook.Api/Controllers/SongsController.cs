@@ -1,4 +1,12 @@
+using ChordBook.Application.Common.Interfaces;
+using ChordBook.Application.Songs.Commands.CreateSong;
+using ChordBook.Application.Songs.Commands.DeleteSong;
+using ChordBook.Application.Songs.Commands.UpdateSong;
 using ChordBook.Application.Songs.DTOs;
+using ChordBook.Application.Songs.Queries.GetSongById;
+using ChordBook.Application.Songs.Queries.GetSongs;
+using ChordBook.Application.Songs.Queries.SearchSongs;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,40 +14,75 @@ namespace ChordBook.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SongsController : ControllerBase
 {
+    private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUser;
+
+    public SongsController(IMediator mediator, ICurrentUserService currentUser)
+    {
+        _mediator = mediator;
+        _currentUser = currentUser;
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SongListItemDto>>> GetSongs()
     {
-        // TODO: Implement with MediatR
-        return Ok(Array.Empty<SongListItemDto>());
+        if (_currentUser.UserId is null) return Unauthorized();
+        var result = await _mediator.Send(
+            new GetSongsQuery(_currentUser.UserId.Value));
+        return Ok(result);
+    }
+
+    [HttpGet("search")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<SongListItemDto>>> SearchSongs(
+        [FromQuery] string? q)
+    {
+        var result = await _mediator.Send(new SearchSongsQuery(q));
+        return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SongDto>> GetSong(Guid id)
     {
-        // TODO: Implement with MediatR
-        return NotFound();
+        if (_currentUser.UserId is null) return Unauthorized();
+        var result = await _mediator.Send(
+            new GetSongByIdQuery(id, _currentUser.UserId.Value));
+        return result is null ? NotFound() : Ok(result);
     }
 
     [HttpPost]
-    public async Task<ActionResult<SongDto>> CreateSong([FromBody] CreateSongDto dto)
+    public async Task<ActionResult<SongDto>> CreateSong(
+        [FromBody] CreateSongDto dto)
     {
-        // TODO: Implement with MediatR
-        return CreatedAtAction(nameof(GetSong), new { id = Guid.NewGuid() }, null);
+        if (_currentUser.UserId is null) return Unauthorized();
+        var command = new CreateSongCommand(
+            _currentUser.UserId.Value, dto.Title, dto.Artist,
+            dto.Key, dto.Bpm, dto.TimeSignature);
+        var result = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetSong), new { id = result.Id }, result);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult> UpdateSong(Guid id, [FromBody] UpdateSongDto dto)
+    public async Task<ActionResult<SongDto>> UpdateSong(
+        Guid id, [FromBody] UpdateSongDto dto)
     {
-        // TODO: Implement with MediatR
-        return NoContent();
+        if (_currentUser.UserId is null) return Unauthorized();
+        var command = new UpdateSongCommand(
+            id, _currentUser.UserId.Value, dto.Title, dto.Artist,
+            dto.Key, dto.Bpm, dto.TimeSignature, dto.Content);
+        var result = await _mediator.Send(command);
+        return result is null ? NotFound() : Ok(result);
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteSong(Guid id)
     {
-        // TODO: Implement with MediatR
-        return NoContent();
+        if (_currentUser.UserId is null) return Unauthorized();
+        var success = await _mediator.Send(
+            new DeleteSongCommand(id, _currentUser.UserId.Value));
+        return success ? NoContent() : NotFound();
     }
 }

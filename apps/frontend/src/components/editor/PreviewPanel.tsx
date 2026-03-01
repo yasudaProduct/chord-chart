@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { parseSectionContent } from '@/lib/sectionContent'
 import type { Song } from '@/types/song'
 
@@ -8,6 +9,11 @@ type PreviewPanelProps = {
 }
 
 export const PreviewPanel = ({ song }: PreviewPanelProps) => {
+  const parsedSections = useMemo(
+    () => song.sections.map((s) => ({ ...s, parsed: parseSectionContent(s.content) })),
+    [song.sections]
+  )
+
   return (
     <aside className="w-1/2 border-l border-slate-200 bg-white px-8 py-10">
       <div className="border-b-2 border-slate-800 pb-4">
@@ -21,8 +27,8 @@ export const PreviewPanel = ({ song }: PreviewPanelProps) => {
       </div>
 
       <div className="mt-6 space-y-6">
-        {song.sections.map((section) => {
-          const content = parseSectionContent(section.content)
+        {parsedSections.map((section) => {
+          const content = section.parsed
           return (
             <div key={`${section.id}-preview`}>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">

@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { supabase } from '@/lib/supabase'
+import type { Session, User as SupabaseUser } from '@supabase/supabase-js'
 
 export interface User {
   id: string
@@ -8,49 +10,68 @@ export interface User {
 
 interface AuthState {
   user: User | null
+  session: Session | null
   isLoading: boolean
-  setUser: (user: User | null) => void
-  setLoading: (loading: boolean) => void
-  hydrate: () => void
-  logout: () => void
+  hydrate: () => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ error?: string }>
+  signUp: (email: string, password: string, name?: string) => Promise<{ error?: string }>
+  logout: () => Promise<void>
 }
 
-const STORAGE_KEY = 'chordbook:user'
+const toUser = (su: SupabaseUser): User => ({
+  id: su.id,
+  email: su.email ?? '',
+  name: su.user_metadata?.display_name ?? undefined,
+})
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
+  session: null,
   isLoading: true,
-  setUser: (user) => {
-    if (typeof window !== 'undefined') {
-      if (user) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
-      } else {
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    }
-    set({ user })
-  },
-  setLoading: (loading) => set({ isLoading: loading }),
-  hydrate: () => {
-    if (typeof window === 'undefined') {
+
+  hydrate: async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      set({
+        session,
+        user: session?.user ? toUser(session.user) : null,
+        isLoading: false,
+      })
+
+      supabase.auth.onAuthStateChange((_event, session) => {
+        set({
+          session,
+          user: session?.user ? toUser(session.user) : null,
+        })
+      })
+    } catch {
       set({ isLoading: false })
-      return
     }
-    const stored = localStorage.getItem(STORAGE_KEY)
-    let user: User | null = null
-    if (stored) {
-      try {
-        user = JSON.parse(stored) as User
-      } catch {
-        user = null
-      }
-    }
-    set({ user, isLoading: false })
   },
-  logout: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY)
-    }
-    set({ user: null })
+
+  signIn: async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (error) return { error: error.message }
+    return {}
+  },
+
+  signUp: async (email, password, name) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: name ? { data: { display_name: name } } : undefined,
+    })
+    if (error) return { error: error.message }
+    return {}
+  },
+
+  logout: async () => {
+    await supabase.auth.signOut()
+    set({ user: null, session: null })
   },
 }))

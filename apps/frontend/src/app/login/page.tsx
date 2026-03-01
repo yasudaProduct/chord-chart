@@ -8,14 +8,24 @@ import { useAuthStore } from '@/stores/authStore'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { setUser } = useAuthStore()
+  const { signIn } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!email.trim()) return
-    setUser({ id: email, email })
+    setIsSubmitting(true)
+    setError(null)
+
+    const result = await signIn(email, password)
+    if (result.error) {
+      setError(result.error)
+      setIsSubmitting(false)
+      return
+    }
     router.push('/songs')
   }
 
@@ -28,8 +38,13 @@ export default function LoginPage() {
             ログイン
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            MVP版のため、入力内容はローカルに保存されます。
+            メールアドレスとパスワードでログインしてください。
           </p>
+          {error && (
+            <p className="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">
+              {error}
+            </p>
+          )}
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <label className="block text-sm text-slate-600">
               メールアドレス
@@ -55,9 +70,10 @@ export default function LoginPage() {
             </label>
             <button
               type="submit"
-              className="w-full rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              disabled={isSubmitting}
+              className="w-full rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
-              ログイン
+              {isSubmitting ? 'ログイン中...' : 'ログイン'}
             </button>
           </form>
           <div className="mt-4 text-center text-xs text-slate-500">

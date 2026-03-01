@@ -1,7 +1,6 @@
-'use client'
-
+import { useMemo } from 'react'
 import { parseSectionContent } from '@/lib/sectionContent'
-import type { BarLine, LyricsChordLine, Song } from '@/types/song'
+import type { Song } from '@/types/song'
 
 type SongPreviewProps = {
   song: Song
@@ -9,10 +8,10 @@ type SongPreviewProps = {
 }
 
 export const SongPreview = ({ song, className }: SongPreviewProps) => {
-  const clamp = (value: number, min = 0, max = 1) =>
-    Math.min(max, Math.max(min, value))
-  const toOffset = (position: number, lyrics: string) =>
-    clamp(position / Math.max(lyrics.length, 1))
+  const parsedSections = useMemo(
+    () => song.sections.map((s) => ({ ...s, parsed: parseSectionContent(s.content) })),
+    [song.sections]
+  )
 
   if (song.sections.length === 0) {
     return (
@@ -29,9 +28,8 @@ export const SongPreview = ({ song, className }: SongPreviewProps) => {
   return (
     <div className={className}>
       <div className="space-y-4">
-        {song.sections.map((section) => {
-          const content = parseSectionContent(section.lines, section.type)
-          const isBar = section.type === 'bar'
+        {parsedSections.map((section) => {
+          const content = section.parsed
           return (
             <div
               key={section.id}
@@ -39,56 +37,32 @@ export const SongPreview = ({ song, className }: SongPreviewProps) => {
             >
               <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-slate-400">
                 <span>{section.name}</span>
-                <span>{section.type === 'lyrics-chord' ? 'Lyrics' : 'Bar'}</span>
+                <span>{section.type === 'lyrics-chord' ? 'Lyrics' : 'Chord'}</span>
               </div>
               <div className="mt-4 space-y-3">
-                {content.lines.map((line) => {
-                  if (isBar) {
-                    const barLine = line as BarLine
-                    const bars = barLine.bars ?? []
-                    return (
-                      <div key={barLine.id} className="space-y-1">
-                        <div className="relative h-6">
-                          {bars.map((bar, index) => (
-                            <span
-                              key={`${barLine.id}-${index}`}
-                              className="absolute rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-primary"
-                              style={{
-                                left: `${((index + 1) / (bars.length + 1)) * 100}%`,
-                                transform: 'translateX(-50%)',
-                              }}
-                            >
-                              {bar}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  const lyricsLine = line as LyricsChordLine
-                  return (
-                    <div key={lyricsLine.id} className="space-y-1">
-                      <div className="relative h-6">
-                        {lyricsLine.chords.map((chord) => (
-                          <span
-                            key={chord.id}
-                            className="absolute rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-primary"
-                            style={{
-                              left: `${toOffset(chord.position, lyricsLine.lyrics) * 100}%`,
-                              transform: 'translateX(-50%)',
-                            }}
-                          >
-                            {chord.chord}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="text-sm text-slate-700">
-                        {lyricsLine.lyrics || '　'}
-                      </div>
+                {content.lines.map((line) => (
+                  <div key={line.id} className="space-y-1">
+                    <div className="relative h-6">
+                      {line.chords.map((chord) => (
+                        <span
+                          key={chord.id}
+                          className="absolute rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-primary"
+                          style={{
+                            left: `${chord.offset * 100}%`,
+                            transform: 'translateX(-50%)',
+                          }}
+                        >
+                          {chord.chord}
+                        </span>
+                      ))}
                     </div>
-                  )
-                })}
+                    {section.type === 'lyrics-chord' && (
+                      <div className="text-sm text-slate-700">
+                        {line.lyrics || '　'}
+                      </div>
+                    )}
+                  </div>
+                ))}
                 {content.lines.length === 0 && (
                   <div className="text-sm text-slate-400">（未入力）</div>
                 )}

@@ -15,6 +15,7 @@ obj/
 *.dll
 *.exe
 *.pdb
+appsettings.Development.json
 
 # IDE
 .idea/
