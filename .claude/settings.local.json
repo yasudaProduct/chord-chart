@@ -13,7 +13,9 @@
       "Bash(npx pnpm:*)",
       "Bash(corepack enable:*)",
       "Bash(pnpm --version:*)",
-      "Bash(pnpm lint 2>&1)"
+      "Bash(pnpm lint 2>&1)",
+      "Bash(export PATH=\"/Users/yuta/.nodebrew/current/bin:$PATH\" && pnpm build 2>&1)",
+      "Bash(export PATH=\"/Users/yuta/.nodebrew/current/bin:$PATH\" && cd /Users/yuta/Develop/chord-chart/apps/frontend && pnpm build 2>&1)"
     ]
   },
   "enableAllProjectMcpServers": true,
